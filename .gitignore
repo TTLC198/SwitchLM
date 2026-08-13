@@ -1,6 +1,8 @@
 /tmp
 /out-tsc
 /dist
+/.npm-cache
+/*.tgz
 
 /node_modules
 npm-debug.log*

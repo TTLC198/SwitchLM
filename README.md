@@ -1,8 +1,36 @@
 # SwitchLM
 
+[![npm version](https://img.shields.io/npm/v/switchlm.svg)](https://www.npmjs.com/package/switchlm)
+[![license](https://img.shields.io/npm/l/switchlm.svg)](LICENSE)
+
 Local OpenAI-compatible routing proxy for Codex. SwitchLM exposes the Responses API and routes coding requests between Luna for simple work and Sol for heavier reasoning.
 
+SwitchLM is published on npm as `switchlm`. The current release is `1.0.2`.
+
+## Key benefits
+
+- Automatically routes simple tasks to Luna and heavier tasks to Sol using transparent deterministic heuristics.
+- Supports explicit model selection through `router/luna` and `router/sol` when automatic routing is not desired.
+- Connects to ChatGPT/Codex through OAuth, including local token storage and automatic access-token refresh.
+- Preserves OpenAI Responses API compatibility, including server-sent event streaming.
+- Exposes routing and token statistics through `GET /stats` and `switchlm stats`.
+- Runs locally with a small configuration and no database or additional classifier model.
+
 ## Install
+
+Install the published package globally:
+
+```bash
+npm install --global switchlm
+```
+
+Upgrade to the latest published version:
+
+```bash
+npm update --global switchlm
+```
+
+To run from source instead:
 
 ```bash
 npm install
@@ -17,9 +45,42 @@ Create `switchlm.config.json` in the project root:
 {
   "host": "127.0.0.1",
   "port": 8787,
+  "bodyLimit": 16777216,
   "routing": {
     "solThreshold": 5
   },
+  "providers": {
+    "luna": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.com/backend-api/codex/responses",
+      "model": "gpt-5.6-luna",
+      "account": "default"
+    },
+    "sol": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.com/backend-api/codex/responses",
+      "model": "gpt-5.6-sol",
+      "account": "default"
+    }
+  },
+  "logLevel": "info"
+}
+```
+
+`bodyLimit` is the maximum request body size in bytes. The default is 16 MiB; increase it if Codex sends a larger repository context.
+
+Authenticate once before starting SwitchLM:
+
+```bash
+switchlm login chatgpt
+```
+
+OAuth tokens are stored in `~/.switchlm/auth.json` and refreshed automatically when possible.
+
+OpenAI-compatible providers with API keys are also supported:
+
+```json
+{
   "providers": {
     "luna": {
       "baseUrl": "https://luna.example.com/v1",
@@ -31,41 +92,13 @@ Create `switchlm.config.json` in the project root:
       "model": "sol-reasoning",
       "apiKeyEnv": "SOL_API_KEY"
     }
-  },
-  "logLevel": "info"
-}
-```
-
-Set provider credentials through environment variables:
-
-```bash
-set LUNA_API_KEY=...
-set SOL_API_KEY=...
-```
-
-Provider entries without `type` are treated as `openai-compatible`.
-
-ChatGPT/Codex provider example:
-
-```json
-{
-  "providers": {
-    "luna": {
-      "baseUrl": "https://luna.example.com/v1",
-      "model": "luna-code",
-      "apiKeyEnv": "LUNA_API_KEY"
-    },
-    "sol": {
-      "type": "codex-chatgpt",
-      "responsesUrl": "https://chatgpt.example.com/backend-api/codex/responses",
-      "model": "gpt-codex",
-      "account": "default"
-    }
   }
 }
 ```
 
-ChatGPT OAuth settings have unstable Codex defaults from OmniRoute:
+Provider entries without `type` are treated as `openai-compatible`. Set their credentials through the configured environment variables.
+
+ChatGPT OAuth defaults:
 
 ```text
 authorizeUrl: https://auth.openai.com/oauth/authorize
@@ -84,12 +117,10 @@ set SWITCHLM_CHATGPT_CLIENT_ID=...
 set SWITCHLM_CHATGPT_SCOPES=openid profile
 ```
 
-Tokens are stored in `~/.switchlm/auth.json`.
-
 ## Run
 
 ```bash
-npm start
+switchlm start
 ```
 
 Or from TypeScript during development:
@@ -101,7 +132,7 @@ npm run dev
 Check health:
 
 ```bash
-npx switchlm status
+switchlm status
 ```
 
 Show token usage:
@@ -113,9 +144,9 @@ npx switchlm stats
 ChatGPT auth:
 
 ```bash
-npx switchlm login chatgpt
-npx switchlm auth status
-npx switchlm logout chatgpt
+switchlm login chatgpt
+switchlm auth status
+switchlm logout chatgpt
 ```
 
 ## API
@@ -150,6 +181,8 @@ Virtual models:
 
 Streaming requests are passed through as server-sent events.
 
+The `codex-chatgpt` provider authenticates through the SwitchLM OAuth flow and uses the configured Codex Responses transport URL.
+
 Token statistics:
 
 ```bash
@@ -162,36 +195,25 @@ With `logLevel: "info"`, each routing log includes the requested virtual model, 
 
 The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
 
-## Local smoke test
-
-```bash
-npm install
-npm run build
-npx switchlm login chatgpt
-npm start
-```
-
-In another terminal:
-
-```bash
-curl http://127.0.0.1:8787/health
-curl http://127.0.0.1:8787/v1/responses ^
-  -H "content-type: application/json" ^
-  -d "{\"model\":\"router/luna\",\"input\":\"Say hello\",\"stream\":true}"
-curl http://127.0.0.1:8787/v1/responses ^
-  -H "content-type: application/json" ^
-  -d "{\"model\":\"router/sol\",\"input\":\"Analyze this architecture redesign\",\"stream\":true}"
-```
-
-If these fail at the provider layer, verify `responsesUrl`, model names, and `npx switchlm auth status`.
 
 ## Codex
 
-Point Codex or any OpenAI-compatible client at:
+Add the following provider to the user-level `~/.codex/config.toml`:
 
-```text
-base_url: http://127.0.0.1:8787/v1
-model: router/auto
+```toml
+model = "router/auto"
+model_provider = "switchlm"
+
+[model_providers.switchlm]
+name = "SwitchLM"
+base_url = "http://127.0.0.1:8787/v1"
+wire_api = "responses"
 ```
 
 Use `router/luna` or `router/sol` when a request must bypass automatic routing.
+
+## License
+
+SwitchLM is distributed under the MIT License. See `LICENSE`.
+
+Parts of the ChatGPT/Codex OAuth integration are based on or adapted from OmniRoute. See `THIRD_PARTY_NOTICES.md` for attribution and third-party license terms.

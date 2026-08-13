@@ -49,6 +49,21 @@ describe("buildApp", () => {
     });
   });
 
+  it("accepts Responses API requests larger than Fastify's default limit", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "response-1" })));
+    vi.stubGlobal("fetch", fetchMock);
+    const app = buildApp(config);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/responses",
+      payload: { model: "router/luna", input: "x".repeat(1024 * 1024 + 1) },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+  });
+
   it("wires ChatGPT Codex providers", () => {
     const app = buildApp(
       parseConfig({
