@@ -33,6 +33,22 @@ describe("buildApp", () => {
     expect(response.json()).toEqual({ status: "ok", name: "SwitchLM" });
   });
 
+  it("serves token statistics", async () => {
+    const app = buildApp(config);
+
+    const response = await app.inject({ method: "GET", url: "/stats" });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      total: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      models: {
+        luna: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        sol: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      },
+    });
+  });
+
   it("wires ChatGPT Codex providers", () => {
     const app = buildApp(
       parseConfig({

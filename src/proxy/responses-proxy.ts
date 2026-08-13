@@ -4,6 +4,7 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { z } from "zod";
 import type { Provider, ProviderRequest } from "../providers/provider.js";
 import type { RoutingStrategy } from "../router/routing-strategy.js";
+import type { TokenStats, TokenUsage } from "../telemetry/token-stats.js";
 
 const responsesRequestSchema = z
   .object({
@@ -19,6 +20,7 @@ export type ResponsesProxyDeps = {
     sol: Provider;
   };
   routingStrategy: RoutingStrategy;
+  tokenStats: TokenStats;
 };
 
 export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProxyDeps): void {
@@ -52,6 +54,40 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       return reply.send(Readable.fromWeb(upstream.body as unknown as NodeReadableStream<Uint8Array>));
     }
 
-    return deps.providers[decision.target].createResponse(body as ProviderRequest);
+    const response = await deps.providers[decision.target].createResponse(body as ProviderRequest);
+    const usage = parseUsage(response);
+
+    if (usage) {
+      deps.tokenStats.record(decision.target, usage);
+      request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
+    }
+
+    return response;
   });
+}
+
+function parseUsage(response: unknown): TokenUsage | undefined {
+  if (!response || typeof response !== "object" || !("usage" in response)) {
+    return undefined;
+  }
+
+  const usage = response.usage;
+
+  if (!usage || typeof usage !== "object") {
+    return undefined;
+  }
+
+  const inputTokens = "input_tokens" in usage ? usage.input_tokens : undefined;
+  const outputTokens = "output_tokens" in usage ? usage.output_tokens : undefined;
+  const totalTokens = "total_tokens" in usage ? usage.total_tokens : undefined;
+
+  if (![inputTokens, outputTokens, totalTokens].every((value) => Number.isSafeInteger(value) && Number(value) >= 0)) {
+    return undefined;
+  }
+
+  return {
+    inputTokens: Number(inputTokens),
+    outputTokens: Number(outputTokens),
+    totalTokens: Number(totalTokens),
+  };
 }

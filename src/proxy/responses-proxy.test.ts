@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { describe, expect, it, vi } from "vitest";
 import type { Provider } from "../providers/provider.js";
 import type { RoutingStrategy } from "../router/routing-strategy.js";
+import { TokenStats } from "../telemetry/token-stats.js";
 import { registerResponsesProxy } from "./responses-proxy.js";
 
 describe("registerResponsesProxy", () => {
@@ -12,7 +13,7 @@ describe("registerResponsesProxy", () => {
       route: vi.fn().mockReturnValue({ target: "sol", score: 5, reasons: ["race condition"] }),
     };
     const app = Fastify({ logger: false });
-    registerResponsesProxy(app, { providers: { luna, sol }, routingStrategy });
+    registerResponsesProxy(app, { providers: { luna, sol }, routingStrategy, tokenStats: new TokenStats() });
 
     const response = await app.inject({
       method: "POST",
@@ -40,6 +41,7 @@ describe("registerResponsesProxy", () => {
         sol: { createResponse: vi.fn() },
       },
       routingStrategy: { route: vi.fn() },
+      tokenStats: new TokenStats(),
     });
 
     const response = await app.inject({
@@ -68,6 +70,7 @@ describe("registerResponsesProxy", () => {
         sol,
       },
       routingStrategy: { route: vi.fn().mockReturnValue({ target: "sol", score: 1, reasons: ["manual sol"] }) },
+      tokenStats: new TokenStats(),
     });
 
     const response = await app.inject({
@@ -81,5 +84,55 @@ describe("registerResponsesProxy", () => {
     expect(response.headers["content-type"]).toContain("text/event-stream");
     expect(response.body).toBe("event: response.completed\n\n");
     expect(sol.createResponseStream).toHaveBeenCalledWith({ model: "router/auto", input: "hello", stream: true });
+  });
+
+  it("records valid usage from non-streaming responses", async () => {
+    const tokenStats = new TokenStats();
+    const app = Fastify({ logger: false });
+    registerResponsesProxy(app, {
+      providers: {
+        luna: {
+          createResponse: vi.fn().mockResolvedValue({
+            id: "response-1",
+            usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
+          }),
+        },
+        sol: { createResponse: vi.fn() },
+      },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "luna", score: 0, reasons: [] }) },
+      tokenStats,
+    });
+
+    await app.inject({ method: "POST", url: "/v1/responses", payload: { input: "hello" } });
+    await app.close();
+
+    expect(tokenStats.snapshot().models.luna).toEqual({
+      requests: 1,
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+    });
+  });
+
+  it("ignores invalid usage from non-streaming responses", async () => {
+    const tokenStats = new TokenStats();
+    const app = Fastify({ logger: false });
+    registerResponsesProxy(app, {
+      providers: {
+        luna: {
+          createResponse: vi.fn().mockResolvedValue({
+            usage: { input_tokens: 10, output_tokens: -1, total_tokens: 9 },
+          }),
+        },
+        sol: { createResponse: vi.fn() },
+      },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "luna", score: 0, reasons: [] }) },
+      tokenStats,
+    });
+
+    await app.inject({ method: "POST", url: "/v1/responses", payload: { input: "hello" } });
+    await app.close();
+
+    expect(tokenStats.snapshot().total.requests).toBe(0);
   });
 });
