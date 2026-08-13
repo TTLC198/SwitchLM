@@ -43,6 +43,39 @@ set LUNA_API_KEY=...
 set SOL_API_KEY=...
 ```
 
+Provider entries without `type` are treated as `openai-compatible`.
+
+ChatGPT/Codex provider example:
+
+```json
+{
+  "providers": {
+    "luna": {
+      "baseUrl": "https://luna.example.com/v1",
+      "model": "luna-code",
+      "apiKeyEnv": "LUNA_API_KEY"
+    },
+    "sol": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.example.com/backend-api/codex/responses",
+      "model": "gpt-codex",
+      "account": "default"
+    }
+  }
+}
+```
+
+ChatGPT OAuth settings are read from env:
+
+```bash
+set SWITCHLM_CHATGPT_AUTHORIZE_URL=...
+set SWITCHLM_CHATGPT_TOKEN_URL=...
+set SWITCHLM_CHATGPT_CLIENT_ID=...
+set SWITCHLM_CHATGPT_SCOPES=openid profile
+```
+
+Tokens are stored in `~/.switchlm/auth.json`.
+
 ## Run
 
 ```bash
@@ -59,6 +92,14 @@ Check health:
 
 ```bash
 npx switchlm status
+```
+
+ChatGPT auth:
+
+```bash
+npx switchlm login chatgpt
+npx switchlm auth status
+npx switchlm logout chatgpt
 ```
 
 ## API
@@ -84,6 +125,8 @@ Virtual models:
 - `router/sol` always routes to Sol.
 
 Streaming requests currently return `501`.
+
+The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
 
 ## Codex
 
