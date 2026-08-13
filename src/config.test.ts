@@ -38,6 +38,7 @@ describe("parseConfig", () => {
         luna: validConfig.providers.luna,
         sol: {
           type: "codex-chatgpt",
+          responsesUrl: "https://chatgpt.example.test/backend-api/codex/responses",
           model: "gpt-5.6-sol",
         },
       },
@@ -45,6 +46,7 @@ describe("parseConfig", () => {
 
     expect(config.providers.sol).toEqual({
       type: "codex-chatgpt",
+      responsesUrl: "https://chatgpt.example.test/backend-api/codex/responses",
       model: "gpt-5.6-sol",
       account: "default",
     });

@@ -10,6 +10,7 @@ const openAICompatibleProviderConfigSchema = z.object({
 
 const codexChatGptProviderConfigSchema = z.object({
   type: z.literal("codex-chatgpt"),
+  responsesUrl: z.string().url(),
   model: z.string().min(1),
   account: z.string().min(1).default("default"),
 });

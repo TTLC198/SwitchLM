@@ -29,20 +29,21 @@ describe("buildApp", () => {
     expect(response.json()).toEqual({ status: "ok", name: "SwitchLM" });
   });
 
-  it("rejects provider types that are not wired yet", () => {
-    expect(() =>
-      buildApp(
-        parseConfig({
-          logLevel: "fatal",
-          providers: {
-            luna: config.providers.luna,
-            sol: {
-              type: "codex-chatgpt",
-              model: "gpt-5.6-sol",
-            },
+  it("wires ChatGPT Codex providers", () => {
+    const app = buildApp(
+      parseConfig({
+        logLevel: "fatal",
+        providers: {
+          luna: config.providers.luna,
+          sol: {
+            type: "codex-chatgpt",
+            responsesUrl: "https://chatgpt.example.test/backend-api/codex/responses",
+            model: "gpt-5.6-sol",
           },
-        }),
-      ),
-    ).toThrow("Provider type is not implemented yet: codex-chatgpt");
+        },
+      }),
+    );
+
+    expect(app.hasRoute({ method: "POST", url: "/v1/responses" })).toBe(true);
   });
 });
