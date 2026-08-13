@@ -1,5 +1,6 @@
 import Fastify from "fastify";
-import type { AppConfig } from "./config.js";
+import type { AppConfig, ProviderConfig } from "./config.js";
+import type { Provider } from "./providers/provider.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible-provider.js";
 import { registerResponsesProxy } from "./proxy/responses-proxy.js";
 import { HeuristicRoutingStrategy } from "./router/heuristic-strategy.js";
@@ -16,13 +17,21 @@ export function buildApp(config: AppConfig) {
 
   registerResponsesProxy(app, {
     providers: {
-      luna: new OpenAICompatibleProvider(config.providers.luna),
-      sol: new OpenAICompatibleProvider(config.providers.sol),
+      luna: createProvider(config.providers.luna),
+      sol: createProvider(config.providers.sol),
     },
     routingStrategy: new HeuristicRoutingStrategy(config.routing.solThreshold),
   });
 
   return app;
+}
+
+function createProvider(config: ProviderConfig): Provider {
+  if (config.type !== "openai-compatible") {
+    throw new Error(`Provider type is not implemented yet: ${config.type}`);
+  }
+
+  return new OpenAICompatibleProvider(config);
 }
 
 export async function startServer(config: AppConfig): Promise<string> {
