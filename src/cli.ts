@@ -6,8 +6,9 @@ import { TokenStore } from "./auth/token-store.js";
 import type { AppConfig } from "./config.js";
 import { loadConfig } from "./config.js";
 import { startServer } from "./server.js";
+import type { TokenStatsSnapshot } from "./telemetry/token-stats.js";
 
-export type CliCommand = "start" | "status" | "login chatgpt" | "logout chatgpt" | "auth status";
+export type CliCommand = "start" | "status" | "stats" | "login chatgpt" | "logout chatgpt" | "auth status";
 
 export function parseCommand(args: string[]): CliCommand | undefined {
   const command = args.slice(0, 2).join(" ");
@@ -16,12 +17,42 @@ export function parseCommand(args: string[]): CliCommand | undefined {
     return command;
   }
 
-  return args[0] === "start" || args[0] === "status" ? args[0] : undefined;
+  return args[0] === "start" || args[0] === "status" || args[0] === "stats" ? args[0] : undefined;
+}
+
+function serverUrl(config: Pick<AppConfig, "host" | "port">, path: string): string {
+  const host = config.host === "0.0.0.0" ? "127.0.0.1" : config.host;
+  return "http://" + host + ":" + config.port + path;
 }
 
 export function healthUrl(config: Pick<AppConfig, "host" | "port">): string {
-  const host = config.host === "0.0.0.0" ? "127.0.0.1" : config.host;
-  return `http://${host}:${config.port}/health`;
+  return serverUrl(config, "/health");
+}
+
+export async function fetchStats(config: AppConfig): Promise<TokenStatsSnapshot> {
+  const response = await fetch(serverUrl(config, "/stats"));
+
+  if (!response.ok) {
+    throw new Error("SwitchLM stats request failed: " + response.status);
+  }
+
+  return response.json() as Promise<TokenStatsSnapshot>;
+}
+
+export function statsTable(stats: TokenStatsSnapshot) {
+  return Object.fromEntries(
+    Object.entries({ luna: stats.models.luna, sol: stats.models.sol, total: stats.total }).map(([model, entry]) => [
+      model,
+      {
+        routed: entry.routedRequests,
+        measured: entry.measuredResponses,
+        missing: entry.routedRequests - entry.measuredResponses,
+        inputTokens: entry.inputTokens,
+        outputTokens: entry.outputTokens,
+        totalTokens: entry.totalTokens,
+      },
+    ]),
+  );
 }
 
 export async function runStatus(config: AppConfig): Promise<boolean> {
@@ -50,7 +81,7 @@ async function main(): Promise<void> {
   const command = parseCommand(process.argv.slice(2));
 
   if (!command) {
-    console.error("Usage: switchlm <start|status|login chatgpt|logout chatgpt|auth status>");
+    console.error("Usage: switchlm <start|status|stats|login chatgpt|logout chatgpt|auth status>");
     process.exitCode = 1;
     return;
   }
@@ -66,6 +97,12 @@ async function main(): Promise<void> {
     const ok = await runStatus(await loadConfig());
     console.log(ok ? "SwitchLM is healthy" : "SwitchLM is not healthy");
     process.exitCode = ok ? 0 : 1;
+    return;
+  }
+
+  if (command === "stats") {
+    const stats = await fetchStats(await loadConfig());
+    console.table(statsTable(stats));
     return;
   }
 
