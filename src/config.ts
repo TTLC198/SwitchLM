@@ -26,6 +26,7 @@ const providerConfigSchema = z.preprocess((value) => {
 const rawConfigSchema = z.object({
   host: z.string().default("127.0.0.1"),
   port: z.number().int().min(1).max(65535).default(8787),
+  bodyLimit: z.number().int().positive().default(16 * 1024 * 1024),
   routing: z
     .object({
       solThreshold: z.number().min(0).default(5),

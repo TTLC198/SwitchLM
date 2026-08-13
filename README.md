@@ -45,6 +45,7 @@ Create `switchlm.config.json` in the project root:
 {
   "host": "127.0.0.1",
   "port": 8787,
+  "bodyLimit": 16777216,
   "routing": {
     "solThreshold": 5
   },
@@ -65,6 +66,8 @@ Create `switchlm.config.json` in the project root:
   "logLevel": "info"
 }
 ```
+
+`bodyLimit` is the maximum request body size in bytes. The default is 16 MiB; increase it if Codex sends a larger repository context.
 
 Authenticate once before starting SwitchLM:
 

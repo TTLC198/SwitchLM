@@ -17,6 +17,14 @@ const validConfig = {
 };
 
 describe("parseConfig", () => {
+  it("uses a 16 MiB request body limit by default", () => {
+    expect(parseConfig(validConfig).bodyLimit).toBe(16 * 1024 * 1024);
+  });
+
+  it("accepts a custom request body limit", () => {
+    expect(parseConfig({ ...validConfig, bodyLimit: 32 * 1024 * 1024 }).bodyLimit).toBe(32 * 1024 * 1024);
+  });
+
   it("applies defaults and reads provider api keys from env", () => {
     const config = parseConfig(validConfig, {
       LUNA_API_KEY: "luna-secret",

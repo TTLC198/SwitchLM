@@ -14,6 +14,7 @@ import { HttpCodexResponsesTransport } from "./transport/codex-responses-transpo
 export function buildApp(config: AppConfig) {
   const app = Fastify({
     logger: { level: config.logLevel },
+    bodyLimit: config.bodyLimit,
   });
   const tokenStats = new TokenStats();
 
