@@ -33,6 +33,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
 
     const body = parsed.data;
     const decision = deps.routingStrategy.route({ model: body.model, input: body.input });
+    deps.tokenStats.recordRouting(decision.target);
     request.log.info({ routing: decision }, "SwitchLM routing decision");
 
     if (body.stream) {
@@ -54,7 +55,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       const stream = observeUsage(
         Readable.fromWeb(upstream.body as unknown as NodeReadableStream<Uint8Array>),
         (usage) => {
-          deps.tokenStats.record(decision.target, usage);
+          deps.tokenStats.recordUsage(decision.target, usage);
           request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
         },
       );
@@ -66,7 +67,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
     const usage = parseUsage(response);
 
     if (usage) {
-      deps.tokenStats.record(decision.target, usage);
+      deps.tokenStats.recordUsage(decision.target, usage);
       request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
     }
 

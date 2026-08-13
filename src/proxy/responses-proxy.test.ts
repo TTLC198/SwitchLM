@@ -123,7 +123,8 @@ describe("registerResponsesProxy", () => {
 
     expect(response.body).toBe(chunks.join(""));
     expect(tokenStats.snapshot().models.sol).toEqual({
-      requests: 1,
+      routedRequests: 1,
+      measuredResponses: 1,
       inputTokens: 10,
       outputTokens: 5,
       totalTokens: 15,
@@ -153,7 +154,7 @@ describe("registerResponsesProxy", () => {
     });
     await app.close();
 
-    expect(tokenStats.snapshot().total.requests).toBe(0);
+    expect(tokenStats.snapshot().total).toMatchObject({ routedRequests: 1, measuredResponses: 0 });
   });
 
   it("records valid usage from non-streaming responses", async () => {
@@ -177,7 +178,8 @@ describe("registerResponsesProxy", () => {
     await app.close();
 
     expect(tokenStats.snapshot().models.luna).toEqual({
-      requests: 1,
+      routedRequests: 1,
+      measuredResponses: 1,
       inputTokens: 10,
       outputTokens: 5,
       totalTokens: 15,
@@ -203,6 +205,6 @@ describe("registerResponsesProxy", () => {
     await app.inject({ method: "POST", url: "/v1/responses", payload: { input: "hello" } });
     await app.close();
 
-    expect(tokenStats.snapshot().total.requests).toBe(0);
+    expect(tokenStats.snapshot().total).toMatchObject({ routedRequests: 1, measuredResponses: 0 });
   });
 });

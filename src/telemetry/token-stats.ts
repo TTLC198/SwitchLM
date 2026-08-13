@@ -7,7 +7,8 @@ export type TokenUsage = {
 };
 
 export type TokenStatsEntry = TokenUsage & {
-  requests: number;
+  routedRequests: number;
+  measuredResponses: number;
 };
 
 export type TokenStatsSnapshot = {
@@ -15,7 +16,13 @@ export type TokenStatsSnapshot = {
   models: Record<RoutingTarget, TokenStatsEntry>;
 };
 
-const emptyEntry = (): TokenStatsEntry => ({ requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 });
+const emptyEntry = (): TokenStatsEntry => ({
+  routedRequests: 0,
+  measuredResponses: 0,
+  inputTokens: 0,
+  outputTokens: 0,
+  totalTokens: 0,
+});
 
 export class TokenStats {
   private readonly entries: TokenStatsSnapshot = {
@@ -23,9 +30,14 @@ export class TokenStats {
     models: { luna: emptyEntry(), sol: emptyEntry() },
   };
 
-  record(model: RoutingTarget, usage: TokenUsage): void {
-    add(this.entries.models[model], usage);
-    add(this.entries.total, usage);
+  recordRouting(model: RoutingTarget): void {
+    this.entries.models[model].routedRequests++;
+    this.entries.total.routedRequests++;
+  }
+
+  recordUsage(model: RoutingTarget, usage: TokenUsage): void {
+    addUsage(this.entries.models[model], usage);
+    addUsage(this.entries.total, usage);
   }
 
   snapshot(): TokenStatsSnapshot {
@@ -33,8 +45,8 @@ export class TokenStats {
   }
 }
 
-function add(entry: TokenStatsEntry, usage: TokenUsage): void {
-  entry.requests++;
+function addUsage(entry: TokenStatsEntry, usage: TokenUsage): void {
+  entry.measuredResponses++;
   entry.inputTokens += usage.inputTokens;
   entry.outputTokens += usage.outputTokens;
   entry.totalTokens += usage.totalTokens;

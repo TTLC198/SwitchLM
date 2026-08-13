@@ -27,10 +27,10 @@ describe("parseCommand", () => {
 
   it("fetches token statistics from the local server", async () => {
     const stats = {
-      total: { requests: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      total: { routedRequests: 1, measuredResponses: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
       models: {
-        luna: { requests: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
-        sol: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        luna: { routedRequests: 1, measuredResponses: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        sol: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       },
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(stats)));

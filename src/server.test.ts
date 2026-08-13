@@ -41,10 +41,10 @@ describe("buildApp", () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      total: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      total: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       models: {
-        luna: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
-        sol: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        luna: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+        sol: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       },
     });
   });

@@ -5,15 +5,19 @@ describe("TokenStats", () => {
   it("aggregates token usage by model and total", () => {
     const stats = new TokenStats();
 
-    stats.record("luna", { inputTokens: 10, outputTokens: 5, totalTokens: 15 });
-    stats.record("sol", { inputTokens: 20, outputTokens: 8, totalTokens: 28 });
-    stats.record("luna", { inputTokens: 2, outputTokens: 1, totalTokens: 3 });
+    stats.recordRouting("luna");
+    stats.recordUsage("luna", { inputTokens: 10, outputTokens: 5, totalTokens: 15 });
+    stats.recordRouting("sol");
+    stats.recordUsage("sol", { inputTokens: 20, outputTokens: 8, totalTokens: 28 });
+    stats.recordRouting("luna");
+    stats.recordUsage("luna", { inputTokens: 2, outputTokens: 1, totalTokens: 3 });
+    stats.recordRouting("luna");
 
     expect(stats.snapshot()).toEqual({
-      total: { requests: 3, inputTokens: 32, outputTokens: 14, totalTokens: 46 },
+      total: { routedRequests: 4, measuredResponses: 3, inputTokens: 32, outputTokens: 14, totalTokens: 46 },
       models: {
-        luna: { requests: 2, inputTokens: 12, outputTokens: 6, totalTokens: 18 },
-        sol: { requests: 1, inputTokens: 20, outputTokens: 8, totalTokens: 28 },
+        luna: { routedRequests: 3, measuredResponses: 2, inputTokens: 12, outputTokens: 6, totalTokens: 18 },
+        sol: { routedRequests: 1, measuredResponses: 1, inputTokens: 20, outputTokens: 8, totalTokens: 28 },
       },
     });
   });
