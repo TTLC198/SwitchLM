@@ -34,7 +34,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
     const body = parsed.data;
     const decision = deps.routingStrategy.route({ model: body.model, input: body.input });
     deps.tokenStats.recordRouting(decision.target);
-    request.log.info({ routing: decision }, "SwitchLM routing decision");
+    request.log.info({ requestedModel: body.model, routing: decision }, "SwitchLM routing decision");
 
     if (body.stream) {
       const provider = deps.providers[decision.target];

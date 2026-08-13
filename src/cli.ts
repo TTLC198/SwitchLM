@@ -39,6 +39,22 @@ export async function fetchStats(config: AppConfig): Promise<TokenStatsSnapshot>
   return response.json() as Promise<TokenStatsSnapshot>;
 }
 
+export function statsTable(stats: TokenStatsSnapshot) {
+  return Object.fromEntries(
+    Object.entries({ luna: stats.models.luna, sol: stats.models.sol, total: stats.total }).map(([model, entry]) => [
+      model,
+      {
+        routed: entry.routedRequests,
+        measured: entry.measuredResponses,
+        missing: entry.routedRequests - entry.measuredResponses,
+        inputTokens: entry.inputTokens,
+        outputTokens: entry.outputTokens,
+        totalTokens: entry.totalTokens,
+      },
+    ]),
+  );
+}
+
 export async function runStatus(config: AppConfig): Promise<boolean> {
   try {
     const response = await fetch(healthUrl(config));
@@ -86,7 +102,7 @@ async function main(): Promise<void> {
 
   if (command === "stats") {
     const stats = await fetchStats(await loadConfig());
-    console.table({ luna: stats.models.luna, sol: stats.models.sol, total: stats.total });
+    console.table(statsTable(stats));
     return;
   }
 

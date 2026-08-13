@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { AppConfig } from "./config.js";
-import { chatGptOAuthConfigFromEnv, fetchStats, healthUrl, parseCommand } from "./cli.js";
+import { chatGptOAuthConfigFromEnv, fetchStats, healthUrl, parseCommand, statsTable } from "./cli.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -38,6 +38,22 @@ describe("parseCommand", () => {
 
     await expect(fetchStats({ host: "0.0.0.0", port: 8787 } as AppConfig)).resolves.toEqual(stats);
     expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8787/stats");
+  });
+
+  it("formats routed and missing responses for display", () => {
+    expect(
+      statsTable({
+        total: { routedRequests: 3, measuredResponses: 2, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        models: {
+          luna: { routedRequests: 2, measuredResponses: 1, inputTokens: 4, outputTokens: 2, totalTokens: 6 },
+          sol: { routedRequests: 1, measuredResponses: 1, inputTokens: 6, outputTokens: 3, totalTokens: 9 },
+        },
+      }),
+    ).toEqual({
+      luna: { routed: 2, measured: 1, missing: 1, inputTokens: 4, outputTokens: 2, totalTokens: 6 },
+      sol: { routed: 1, measured: 1, missing: 0, inputTokens: 6, outputTokens: 3, totalTokens: 9 },
+      total: { routed: 3, measured: 2, missing: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    });
   });
 
   it("reads ChatGPT OAuth config from env", () => {
