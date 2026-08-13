@@ -1,11 +1,27 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 
-const providerConfigSchema = z.object({
+const openAICompatibleProviderConfigSchema = z.object({
+  type: z.literal("openai-compatible").default("openai-compatible"),
   baseUrl: z.string().url(),
   model: z.string().min(1),
   apiKeyEnv: z.string().min(1),
 });
+
+const codexChatGptProviderConfigSchema = z.object({
+  type: z.literal("codex-chatgpt"),
+  responsesUrl: z.string().url(),
+  model: z.string().min(1),
+  account: z.string().min(1).default("default"),
+});
+
+const providerConfigSchema = z.preprocess((value) => {
+  if (value && typeof value === "object" && !("type" in value)) {
+    return { type: "openai-compatible", ...value };
+  }
+
+  return value;
+}, z.discriminatedUnion("type", [openAICompatibleProviderConfigSchema, codexChatGptProviderConfigSchema]));
 
 const rawConfigSchema = z.object({
   host: z.string().default("127.0.0.1"),
@@ -24,10 +40,16 @@ const rawConfigSchema = z.object({
 
 export type AppConfig = z.infer<typeof rawConfigSchema> & {
   providers: {
-    luna: z.infer<typeof providerConfigSchema> & { apiKey?: string };
-    sol: z.infer<typeof providerConfigSchema> & { apiKey?: string };
+    luna: ProviderConfig;
+    sol: ProviderConfig;
   };
 };
+
+export type OpenAICompatibleProviderConfig = z.infer<typeof openAICompatibleProviderConfigSchema> & {
+  apiKey?: string;
+};
+export type CodexChatGptProviderConfig = z.infer<typeof codexChatGptProviderConfigSchema>;
+export type ProviderConfig = OpenAICompatibleProviderConfig | CodexChatGptProviderConfig;
 
 export function parseConfig(input: unknown, env: NodeJS.ProcessEnv = process.env): AppConfig {
   const config = rawConfigSchema.parse(input);
@@ -35,10 +57,21 @@ export function parseConfig(input: unknown, env: NodeJS.ProcessEnv = process.env
   return {
     ...config,
     providers: {
-      luna: { ...config.providers.luna, apiKey: env[config.providers.luna.apiKeyEnv] },
-      sol: { ...config.providers.sol, apiKey: env[config.providers.sol.apiKeyEnv] },
+      luna: withProviderSecret(config.providers.luna, env),
+      sol: withProviderSecret(config.providers.sol, env),
     },
   };
+}
+
+function withProviderSecret(
+  provider: z.infer<typeof providerConfigSchema>,
+  env: NodeJS.ProcessEnv,
+): ProviderConfig {
+  if (provider.type !== "openai-compatible") {
+    return provider;
+  }
+
+  return { ...provider, apiKey: env[provider.apiKeyEnv] };
 }
 
 export async function loadConfig(

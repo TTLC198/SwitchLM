@@ -43,6 +43,49 @@ set LUNA_API_KEY=...
 set SOL_API_KEY=...
 ```
 
+Provider entries without `type` are treated as `openai-compatible`.
+
+ChatGPT/Codex provider example:
+
+```json
+{
+  "providers": {
+    "luna": {
+      "baseUrl": "https://luna.example.com/v1",
+      "model": "luna-code",
+      "apiKeyEnv": "LUNA_API_KEY"
+    },
+    "sol": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.example.com/backend-api/codex/responses",
+      "model": "gpt-codex",
+      "account": "default"
+    }
+  }
+}
+```
+
+ChatGPT OAuth settings have unstable Codex defaults from OmniRoute:
+
+```text
+authorizeUrl: https://auth.openai.com/oauth/authorize
+tokenUrl: https://auth.openai.com/oauth/token
+clientId: app_EMoamEEZ73f0CkXaXp7hrann
+scopes: openid profile email offline_access
+redirectUri: http://localhost:1455/auth/callback
+```
+
+Override them with env if needed:
+
+```bash
+set SWITCHLM_CHATGPT_AUTHORIZE_URL=...
+set SWITCHLM_CHATGPT_TOKEN_URL=...
+set SWITCHLM_CHATGPT_CLIENT_ID=...
+set SWITCHLM_CHATGPT_SCOPES=openid profile
+```
+
+Tokens are stored in `~/.switchlm/auth.json`.
+
 ## Run
 
 ```bash
@@ -61,6 +104,14 @@ Check health:
 npx switchlm status
 ```
 
+ChatGPT auth:
+
+```bash
+npx switchlm login chatgpt
+npx switchlm auth status
+npx switchlm logout chatgpt
+```
+
 ## API
 
 Health:
@@ -77,13 +128,46 @@ curl http://127.0.0.1:8787/v1/responses ^
   -d "{\"model\":\"router/auto\",\"input\":\"Fix this TypeScript error\"}"
 ```
 
+Streaming:
+
+```bash
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/auto\",\"input\":\"Fix this TypeScript error\",\"stream\":true}"
+```
+
 Virtual models:
 
 - `router/auto` routes by deterministic heuristics.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
 
-Streaming requests currently return `501`.
+Streaming requests are passed through as server-sent events.
+
+The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
+
+## Local smoke test
+
+```bash
+npm install
+npm run build
+npx switchlm login chatgpt
+npm start
+```
+
+In another terminal:
+
+```bash
+curl http://127.0.0.1:8787/health
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/luna\",\"input\":\"Say hello\",\"stream\":true}"
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/sol\",\"input\":\"Analyze this architecture redesign\",\"stream\":true}"
+```
+
+If these fail at the provider layer, verify `responsesUrl`, model names, and `npx switchlm auth status`.
 
 ## Codex
 
