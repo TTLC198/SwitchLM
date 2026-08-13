@@ -23,6 +23,46 @@ describe("HeuristicRoutingStrategy", () => {
     expect(decision.reasons).toContain("race condition");
   });
 
+  it("ignores heavy signals in developer context", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: [
+        { role: "developer", content: "Always inspect architecture, concurrency, and security analysis." },
+        { role: "user", content: [{ type: "input_text", text: "Rename this variable." }] },
+      ],
+    });
+
+    expect(decision.target).toBe("luna");
+    expect(decision.reasons).toEqual(["low complexity"]);
+  });
+
+  it("routes heavy user content to Sol", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: [
+        { role: "developer", content: "Keep changes small." },
+        { role: "user", content: [{ type: "text", text: "Investigate this race condition." }] },
+      ],
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toContain("race condition");
+  });
+
+  it("combines user messages and ignores unknown input items", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: [
+        { role: "user", content: "Review the architecture." },
+        { type: "function_call", name: "search" },
+        { role: "user", content: [{ type: "input_text", text: "Then redesign it." }] },
+      ],
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toEqual(["architecture", "redesign"]);
+  });
+
   it("honors manual virtual models", () => {
     const strategy = new HeuristicRoutingStrategy();
 
