@@ -39,6 +39,9 @@ export function chatGptOAuthConfigFromEnv(env: NodeJS.ProcessEnv = process.env):
     tokenUrl: env.SWITCHLM_CHATGPT_TOKEN_URL ?? unstableChatGptOAuthDefaults.tokenUrl,
     clientId: env.SWITCHLM_CHATGPT_CLIENT_ID ?? unstableChatGptOAuthDefaults.clientId,
     scopes: env.SWITCHLM_CHATGPT_SCOPES?.split(/\s+/).filter(Boolean) ?? unstableChatGptOAuthDefaults.scopes,
+    callbackHost: unstableChatGptOAuthDefaults.callbackHost,
+    callbackPort: unstableChatGptOAuthDefaults.callbackPort,
+    callbackPath: unstableChatGptOAuthDefaults.callbackPath,
     extraParams: unstableChatGptOAuthDefaults.extraParams,
   };
 }

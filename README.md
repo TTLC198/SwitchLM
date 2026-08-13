@@ -72,6 +72,7 @@ authorizeUrl: https://auth.openai.com/oauth/authorize
 tokenUrl: https://auth.openai.com/oauth/token
 clientId: app_EMoamEEZ73f0CkXaXp7hrann
 scopes: openid profile email offline_access
+redirectUri: http://localhost:1455/auth/callback
 ```
 
 Override them with env if needed:

@@ -11,6 +11,7 @@ export type ChatGptOAuthConfig = {
   extraParams?: Record<string, string>;
   callbackHost?: string;
   callbackPort?: number;
+  callbackPath?: string;
 };
 
 type TokenResponse = {
@@ -81,6 +82,7 @@ export class ChatGptOAuth {
     const { redirectUri, waitForCode, close } = await listenForOAuthCode(
       this.config.callbackHost ?? "127.0.0.1",
       this.config.callbackPort ?? 0,
+      this.config.callbackPath ?? "/callback",
       state,
     );
 
@@ -114,7 +116,7 @@ async function parseTokenResponse(response: Response, fallbackRefreshToken?: str
   };
 }
 
-async function listenForOAuthCode(host: string, port: number, state: string) {
+async function listenForOAuthCode(host: string, port: number, path: string, state: string) {
   let resolveCode: (code: string) => void;
   let rejectCode: (error: Error) => void;
   const waitForCode = new Promise<string>((resolve, reject) => {
@@ -127,7 +129,7 @@ async function listenForOAuthCode(host: string, port: number, state: string) {
     const code = url.searchParams.get("code");
     const receivedState = url.searchParams.get("state");
 
-    if (!code || receivedState !== state) {
+    if (url.pathname !== path || !code || receivedState !== state) {
       response.writeHead(400);
       response.end("Invalid OAuth callback");
       rejectCode(new Error("Invalid OAuth callback"));
@@ -147,7 +149,7 @@ async function listenForOAuthCode(host: string, port: number, state: string) {
   }
 
   return {
-    redirectUri: `http://${host}:${address.port}/callback`,
+    redirectUri: `http://${host}:${address.port}${path}`,
     waitForCode,
     close: () => new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve()))),
   };

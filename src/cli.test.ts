@@ -32,6 +32,9 @@ describe("parseCommand", () => {
       tokenUrl: "https://example.test/token",
       clientId: "client",
       scopes: ["openid", "profile"],
+      callbackHost: "localhost",
+      callbackPort: 1455,
+      callbackPath: "/auth/callback",
       extraParams: {
         id_token_add_organizations: "true",
         codex_cli_simplified_flow: "true",
