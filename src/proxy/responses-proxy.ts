@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { Readable } from "node:stream";
+import { Readable, Transform } from "node:stream";
 import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { z } from "zod";
 import type { Provider, ProviderRequest } from "../providers/provider.js";
@@ -51,7 +51,15 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
         return reply.send();
       }
 
-      return reply.send(Readable.fromWeb(upstream.body as unknown as NodeReadableStream<Uint8Array>));
+      const stream = observeUsage(
+        Readable.fromWeb(upstream.body as unknown as NodeReadableStream<Uint8Array>),
+        (usage) => {
+          deps.tokenStats.record(decision.target, usage);
+          request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
+        },
+      );
+
+      return reply.send(stream);
     }
 
     const response = await deps.providers[decision.target].createResponse(body as ProviderRequest);
@@ -64,6 +72,57 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
 
     return response;
   });
+}
+
+function observeUsage(stream: Readable, record: (usage: TokenUsage) => void): Transform {
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const transform = new Transform({
+    transform(chunk: Buffer, _encoding, callback) {
+      buffer += decoder.decode(chunk, { stream: true });
+      buffer = consumeEvents(buffer, record);
+      callback(null, chunk);
+    },
+    flush(callback) {
+      buffer += decoder.decode();
+      consumeEvents(buffer, record);
+      callback();
+    },
+  });
+
+  return stream.pipe(transform);
+}
+
+function consumeEvents(buffer: string, record: (usage: TokenUsage) => void): string {
+  const events = buffer.split(/\r?\n\r?\n/);
+  const remainder = events.pop() ?? "";
+
+  for (const event of events) {
+    const lines = event.split(/\r?\n/);
+
+    if (!lines.includes("event: response.completed")) {
+      continue;
+    }
+
+    const data = lines
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trimStart())
+      .join("\n");
+
+    try {
+      const payload = JSON.parse(data) as { response?: unknown };
+      const usage = parseUsage(payload.response);
+
+      if (usage) {
+        record(usage);
+      }
+    } catch {
+      // Ignore malformed upstream telemetry without breaking the client stream.
+    }
+  }
+
+  return remainder;
 }
 
 function parseUsage(response: unknown): TokenUsage | undefined {

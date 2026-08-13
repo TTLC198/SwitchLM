@@ -86,6 +86,76 @@ describe("registerResponsesProxy", () => {
     expect(sol.createResponseStream).toHaveBeenCalledWith({ model: "router/auto", input: "hello", stream: true });
   });
 
+  it("records usage from a chunked completed stream without changing it", async () => {
+    const tokenStats = new TokenStats();
+    const encoder = new TextEncoder();
+    const chunks = [
+      'event: response.completed\ndata: {"response":{"usage":{"input_tokens":10,',
+      '"output_tokens":5,"total_tokens":15}}}\n\n',
+    ];
+    const stream = new Response(
+      new ReadableStream({
+        start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+          controller.close();
+        },
+      }),
+      { headers: { "content-type": "text/event-stream" } },
+    );
+    const app = Fastify({ logger: false });
+    registerResponsesProxy(app, {
+      providers: {
+        luna: { createResponse: vi.fn() },
+        sol: { createResponse: vi.fn(), createResponseStream: vi.fn().mockResolvedValue(stream) },
+      },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "sol", score: 1, reasons: [] }) },
+      tokenStats,
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/responses",
+      payload: { model: "router/sol", input: "hello", stream: true },
+    });
+    await app.close();
+
+    expect(response.body).toBe(chunks.join(""));
+    expect(tokenStats.snapshot().models.sol).toEqual({
+      requests: 1,
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+    });
+  });
+
+  it("ignores an incomplete completed event", async () => {
+    const tokenStats = new TokenStats();
+    const stream = new Response(
+      'event: response.completed\ndata: {"response":{"usage":{"input_tokens":10',
+      { headers: { "content-type": "text/event-stream" } },
+    );
+    const app = Fastify({ logger: false });
+    registerResponsesProxy(app, {
+      providers: {
+        luna: { createResponse: vi.fn(), createResponseStream: vi.fn().mockResolvedValue(stream) },
+        sol: { createResponse: vi.fn() },
+      },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "luna", score: 0, reasons: [] }) },
+      tokenStats,
+    });
+
+    await app.inject({
+      method: "POST",
+      url: "/v1/responses",
+      payload: { model: "router/luna", input: "hello", stream: true },
+    });
+    await app.close();
+
+    expect(tokenStats.snapshot().total.requests).toBe(0);
+  });
+
   it("records valid usage from non-streaming responses", async () => {
     const tokenStats = new TokenStats();
     const app = Fastify({ logger: false });
