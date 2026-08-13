@@ -144,7 +144,7 @@ curl http://127.0.0.1:8787/v1/responses ^
 
 Virtual models:
 
-- `router/auto` routes by deterministic heuristics.
+- `router/auto` routes by deterministic heuristics over user messages only; developer/system context and tool items are ignored.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
 
@@ -156,7 +156,9 @@ Token statistics:
 curl http://127.0.0.1:8787/stats
 ```
 
-The response contains request and token totals for Luna, Sol, and both providers combined. Statistics use the provider's `usage` values and reset when SwitchLM restarts.
+The response contains routing and token totals for Luna, Sol, and both providers combined. `routedRequests` counts model selections, while `measuredResponses` counts completed responses with valid provider `usage`. The CLI shows their difference as `missing`. Statistics reset when SwitchLM restarts.
+
+With `logLevel: "info"`, each routing log includes the requested virtual model, selected target, score, and matching reasons without logging prompt contents.
 
 The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
 
