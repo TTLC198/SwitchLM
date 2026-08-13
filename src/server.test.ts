@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseConfig } from "./config.js";
 import { buildApp } from "./server.js";
 
@@ -19,6 +19,10 @@ const config = parseConfig({
 });
 
 describe("buildApp", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("serves health", async () => {
     const app = buildApp(config);
 
@@ -45,5 +49,34 @@ describe("buildApp", () => {
     );
 
     expect(app.hasRoute({ method: "POST", url: "/v1/responses" })).toBe(true);
+  });
+
+  it("streams Responses API requests through provider wiring", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("event: response.completed\n\n", {
+        headers: { "content-type": "text/event-stream" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const app = buildApp(config);
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/responses",
+      payload: { model: "router/luna", input: "hello", stream: true },
+    });
+    await app.close();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/event-stream");
+    expect(response.body).toBe("event: response.completed\n\n");
+    expect(fetchMock).toHaveBeenCalledWith("https://luna.example.test/v1/responses", {
+      method: "POST",
+      headers: {
+        accept: "text/event-stream",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ model: "luna-code", input: "hello", stream: true }),
+    });
   });
 });

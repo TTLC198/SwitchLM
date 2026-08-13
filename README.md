@@ -128,15 +128,46 @@ curl http://127.0.0.1:8787/v1/responses ^
   -d "{\"model\":\"router/auto\",\"input\":\"Fix this TypeScript error\"}"
 ```
 
+Streaming:
+
+```bash
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/auto\",\"input\":\"Fix this TypeScript error\",\"stream\":true}"
+```
+
 Virtual models:
 
 - `router/auto` routes by deterministic heuristics.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
 
-Streaming requests currently return `501`.
+Streaming requests are passed through as server-sent events.
 
 The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
+
+## Local smoke test
+
+```bash
+npm install
+npm run build
+npx switchlm login chatgpt
+npm start
+```
+
+In another terminal:
+
+```bash
+curl http://127.0.0.1:8787/health
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/luna\",\"input\":\"Say hello\",\"stream\":true}"
+curl http://127.0.0.1:8787/v1/responses ^
+  -H "content-type: application/json" ^
+  -d "{\"model\":\"router/sol\",\"input\":\"Analyze this architecture redesign\",\"stream\":true}"
+```
+
+If these fail at the provider layer, verify `responsesUrl`, model names, and `npx switchlm auth status`.
 
 ## Codex
 
