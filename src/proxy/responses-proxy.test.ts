@@ -52,14 +52,22 @@ describe("registerResponsesProxy", () => {
     expect(response.statusCode).toBe(400);
   });
 
-  it("returns 501 for streaming until SSE proxying is implemented", async () => {
+  it("streams responses from the selected provider", async () => {
+    const stream = new Response("event: response.completed\n\n", {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    });
+    const sol: Provider = {
+      createResponse: vi.fn(),
+      createResponseStream: vi.fn().mockResolvedValue(stream),
+    };
     const app = Fastify({ logger: false });
     registerResponsesProxy(app, {
       providers: {
         luna: { createResponse: vi.fn() },
-        sol: { createResponse: vi.fn() },
+        sol,
       },
-      routingStrategy: { route: vi.fn() },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "sol", score: 1, reasons: ["manual sol"] }) },
     });
 
     const response = await app.inject({
@@ -69,6 +77,9 @@ describe("registerResponsesProxy", () => {
     });
     await app.close();
 
-    expect(response.statusCode).toBe(501);
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("text/event-stream");
+    expect(response.body).toBe("event: response.completed\n\n");
+    expect(sol.createResponseStream).toHaveBeenCalledWith({ model: "router/auto", input: "hello", stream: true });
   });
 });

@@ -25,6 +25,16 @@ export class CodexChatGptProvider implements Provider {
     });
   }
 
+  async createResponseStream(request: ProviderRequest): Promise<Response> {
+    const account = this.config.account ?? "default";
+    const tokens = await this.validTokens(account);
+
+    return this.transport.createResponseStream(tokens.accessToken, {
+      ...request,
+      model: this.config.model,
+    });
+  }
+
   private async validTokens(account: string): Promise<ChatGptTokens> {
     const tokens = await this.tokenStore.requireChatGptTokens(account);
 

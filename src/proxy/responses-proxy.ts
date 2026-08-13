@@ -1,4 +1,6 @@
 import type { FastifyInstance } from "fastify";
+import { Readable } from "node:stream";
+import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { z } from "zod";
 import type { Provider, ProviderRequest } from "../providers/provider.js";
 import type { RoutingStrategy } from "../router/routing-strategy.js";
@@ -28,13 +30,27 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
     }
 
     const body = parsed.data;
-
-    if (body.stream) {
-      return reply.code(501).send({ error: { message: "Streaming is not implemented yet" } });
-    }
-
     const decision = deps.routingStrategy.route({ model: body.model, input: body.input });
     request.log.info({ routing: decision }, "SwitchLM routing decision");
+
+    if (body.stream) {
+      const provider = deps.providers[decision.target];
+
+      if (!provider.createResponseStream) {
+        return reply.code(501).send({ error: { message: "Selected provider does not support streaming" } });
+      }
+
+      const upstream = await provider.createResponseStream(body as ProviderRequest);
+      reply.code(upstream.status);
+      reply.header("content-type", upstream.headers.get("content-type") ?? "text/event-stream");
+      reply.header("cache-control", upstream.headers.get("cache-control") ?? "no-cache");
+
+      if (!upstream.body) {
+        return reply.send();
+      }
+
+      return reply.send(Readable.fromWeb(upstream.body as unknown as NodeReadableStream<Uint8Array>));
+    }
 
     return deps.providers[decision.target].createResponse(body as ProviderRequest);
   });

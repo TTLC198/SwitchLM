@@ -60,5 +60,6 @@ function fakeTokenStore(tokens: { accessToken: string; refreshToken: string; exp
 function fakeTransport(response: unknown): CodexResponsesTransport {
   return {
     createResponse: vi.fn().mockResolvedValue(response),
+    createResponseStream: vi.fn().mockResolvedValue(new Response()),
   };
 }

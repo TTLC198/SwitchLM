@@ -25,6 +25,24 @@ export class OpenAICompatibleProvider implements Provider {
 
     return response.json();
   }
+
+  async createResponseStream(request: ProviderRequest): Promise<Response> {
+    const response = await fetch(joinUrl(this.config.baseUrl, "responses"), {
+      method: "POST",
+      headers: {
+        accept: "text/event-stream",
+        "content-type": "application/json",
+        ...(this.config.apiKey ? { authorization: `Bearer ${this.config.apiKey}` } : {}),
+      },
+      body: JSON.stringify({ ...request, model: this.config.model }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Provider request failed: ${response.status} ${await response.text()}`);
+    }
+
+    return response;
+  }
 }
 
 function joinUrl(baseUrl: string, path: string): string {
