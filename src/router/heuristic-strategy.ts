@@ -59,13 +59,37 @@ function textFromInput(input: unknown): string {
   }
 
   if (Array.isArray(input)) {
-    return input.map(textFromInput).join("\n");
-  }
-
-  if (input && typeof input === "object") {
-    // ponytail: naive object scan; replace with Responses API-aware extraction if false positives matter.
-    return Object.values(input).map(textFromInput).join("\n");
+    return input.map(textFromUserMessage).filter(Boolean).join("\n");
   }
 
   return "";
+}
+
+function textFromUserMessage(item: unknown): string {
+  if (!item || typeof item !== "object" || !("role" in item) || item.role !== "user" || !("content" in item)) {
+    return "";
+  }
+
+  if (typeof item.content === "string") {
+    return item.content;
+  }
+
+  if (!Array.isArray(item.content)) {
+    return "";
+  }
+
+  return item.content
+    .filter(
+      (part): part is { type: "input_text" | "text"; text: string } =>
+        Boolean(
+          part &&
+            typeof part === "object" &&
+            "type" in part &&
+            (part.type === "input_text" || part.type === "text") &&
+            "text" in part &&
+            typeof part.text === "string",
+        ),
+    )
+    .map((part) => part.text)
+    .join("\n");
 }

@@ -132,6 +132,12 @@ Check health:
 switchlm status
 ```
 
+Show token usage:
+
+```bash
+npx switchlm stats
+```
+
 ChatGPT auth:
 
 ```bash
@@ -166,13 +172,26 @@ curl http://127.0.0.1:8787/v1/responses ^
 
 Virtual models:
 
-- `router/auto` routes by deterministic heuristics.
+- `router/auto` routes by deterministic heuristics over user messages only; developer/system context and tool items are ignored.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
 
 Streaming requests are passed through as server-sent events.
 
 The `codex-chatgpt` provider authenticates through the SwitchLM OAuth flow and uses the configured Codex Responses transport URL.
+
+Token statistics:
+
+```bash
+curl http://127.0.0.1:8787/stats
+```
+
+The response contains routing and token totals for Luna, Sol, and both providers combined. `routedRequests` counts model selections, while `measuredResponses` counts completed responses with valid provider `usage`. The CLI shows their difference as `missing`. Statistics reset when SwitchLM restarts.
+
+With `logLevel: "info"`, each routing log includes the requested virtual model, selected target, score, and matching reasons without logging prompt contents.
+
+The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
+
 
 ## Codex
 

@@ -8,17 +8,21 @@ import type { Provider } from "./providers/provider.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible-provider.js";
 import { registerResponsesProxy } from "./proxy/responses-proxy.js";
 import { HeuristicRoutingStrategy } from "./router/heuristic-strategy.js";
+import { TokenStats } from "./telemetry/token-stats.js";
 import { HttpCodexResponsesTransport } from "./transport/codex-responses-transport.js";
 
 export function buildApp(config: AppConfig) {
   const app = Fastify({
     logger: { level: config.logLevel },
   });
+  const tokenStats = new TokenStats();
 
   app.get("/health", async () => ({
     status: "ok",
     name: "SwitchLM",
   }));
+
+  app.get("/stats", async () => tokenStats.snapshot());
 
   registerResponsesProxy(app, {
     providers: {
@@ -26,6 +30,7 @@ export function buildApp(config: AppConfig) {
       sol: createProvider(config.providers.sol),
     },
     routingStrategy: new HeuristicRoutingStrategy(config.routing.solThreshold),
+    tokenStats,
   });
 
   return app;
