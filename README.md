@@ -5,7 +5,7 @@
 
 Local OpenAI-compatible routing proxy for Codex. SwitchLM exposes the Responses API and routes coding requests between Luna for simple work and Sol for heavier reasoning.
 
-SwitchLM is published on npm as `switchlm`. The current release is `1.0.0`.
+SwitchLM is published on npm as `switchlm`. The current release is `1.0.2`.
 
 ## Key benefits
 

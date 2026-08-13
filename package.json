@@ -1,6 +1,6 @@
 {
   "name": "switchlm",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Local model-routing proxy for Codex and OpenAI Responses API clients",
   "license": "MIT",
   "repository": {
