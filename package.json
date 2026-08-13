@@ -1,18 +1,48 @@
 {
   "name": "switchlm",
   "version": "1.0.0",
-  "description": "",
+  "description": "Local model-routing proxy for Codex and OpenAI Responses API clients",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TTLC198/SwitchLM.git"
+  },
+  "homepage": "https://github.com/TTLC198/SwitchLM#readme",
+  "bugs": {
+    "url": "https://github.com/TTLC198/SwitchLM/issues"
+  },
   "main": "dist/index.js",
   "bin": {
     "switchlm": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "codex",
+    "openai",
+    "responses-api",
+    "model-router",
+    "proxy"
+  ],
   "scripts": {
-    "build": "tsc",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --dir src",
     "dev": "tsx src/cli.ts start",
-    "start": "node dist/cli.js start"
+    "start": "node dist/cli.js start",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test && npm run typecheck"
   },
   "dependencies": {
     "fastify": "^5.6.2",
@@ -23,6 +53,5 @@
     "vitest": "^3.2.4",
     "tsx": "^4.20.3",
     "typescript": "^6.0.3"
-  },
-  "private": true
+  }
 }

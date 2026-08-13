@@ -14,6 +14,12 @@ Local OpenAI-compatible routing proxy for Codex. SwitchLM exposes the Responses 
 ## Install
 
 ```bash
+npm install --global switchlm
+```
+
+To run from source instead:
+
+```bash
 npm install
 npm run build
 ```
@@ -50,7 +56,7 @@ Create `switchlm.config.json` in the project root:
 Authenticate once before starting SwitchLM:
 
 ```bash
-npx switchlm login chatgpt
+switchlm login chatgpt
 ```
 
 OAuth tokens are stored in `~/.switchlm/auth.json` and refreshed automatically when possible.
@@ -98,7 +104,7 @@ set SWITCHLM_CHATGPT_SCOPES=openid profile
 ## Run
 
 ```bash
-npm start
+switchlm start
 ```
 
 Or from TypeScript during development:
@@ -110,15 +116,15 @@ npm run dev
 Check health:
 
 ```bash
-npx switchlm status
+switchlm status
 ```
 
 ChatGPT auth:
 
 ```bash
-npx switchlm login chatgpt
-npx switchlm auth status
-npx switchlm logout chatgpt
+switchlm login chatgpt
+switchlm auth status
+switchlm logout chatgpt
 ```
 
 ## API
