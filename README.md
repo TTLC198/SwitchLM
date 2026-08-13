@@ -1,6 +1,11 @@
 # SwitchLM
 
+[![npm version](https://img.shields.io/npm/v/switchlm.svg)](https://www.npmjs.com/package/switchlm)
+[![license](https://img.shields.io/npm/l/switchlm.svg)](LICENSE)
+
 Local OpenAI-compatible routing proxy for Codex. SwitchLM exposes the Responses API and routes coding requests between Luna for simple work and Sol for heavier reasoning.
+
+SwitchLM is published on npm as `switchlm`. The current release is `1.0.0`.
 
 ## Key benefits
 
@@ -13,8 +18,16 @@ Local OpenAI-compatible routing proxy for Codex. SwitchLM exposes the Responses 
 
 ## Install
 
+Install the published package globally:
+
 ```bash
 npm install --global switchlm
+```
+
+Upgrade to the latest published version:
+
+```bash
+npm update --global switchlm
 ```
 
 To run from source instead:
