@@ -170,3 +170,9 @@ wire_api = "responses"
 ```
 
 Use `router/luna` or `router/sol` when a request must bypass automatic routing.
+
+## License
+
+SwitchLM is distributed under the MIT License. See `LICENSE`.
+
+Parts of the ChatGPT/Codex OAuth integration are based on or adapted from OmniRoute. See `THIRD_PARTY_NOTICES.md` for attribution and third-party license terms.

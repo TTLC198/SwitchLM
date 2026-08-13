@@ -1,5 +1,6 @@
 import type { ChatGptOAuthConfig } from "./chatgpt-oauth.js";
 
+// Portions adapted from OmniRoute under the MIT License. See THIRD_PARTY_NOTICES.md.
 export const unstableChatGptOAuthDefaults: ChatGptOAuthConfig = {
   authorizeUrl: "https://auth.openai.com/oauth/authorize",
   tokenUrl: "https://auth.openai.com/oauth/token",
