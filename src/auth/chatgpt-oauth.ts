@@ -8,6 +8,7 @@ export type ChatGptOAuthConfig = {
   tokenUrl: string;
   clientId: string;
   scopes?: string[];
+  extraParams?: Record<string, string>;
   callbackHost?: string;
   callbackPort?: number;
 };
@@ -35,6 +36,10 @@ export class ChatGptOAuth {
 
     if (this.config.scopes?.length) {
       url.searchParams.set("scope", this.config.scopes.join(" "));
+    }
+
+    for (const [key, value] of Object.entries(this.config.extraParams ?? {})) {
+      url.searchParams.set(key, value);
     }
 
     return url.toString();

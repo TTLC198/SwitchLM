@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { ChatGptOAuth, type ChatGptOAuthConfig } from "./auth/chatgpt-oauth.js";
+import { unstableChatGptOAuthDefaults } from "./auth/chatgpt-oauth-defaults.js";
 import { TokenStore } from "./auth/token-store.js";
 import type { AppConfig } from "./config.js";
 import { loadConfig } from "./config.js";
@@ -33,21 +34,12 @@ export async function runStatus(config: AppConfig): Promise<boolean> {
 }
 
 export function chatGptOAuthConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ChatGptOAuthConfig {
-  const authorizeUrl = env.SWITCHLM_CHATGPT_AUTHORIZE_URL;
-  const tokenUrl = env.SWITCHLM_CHATGPT_TOKEN_URL;
-  const clientId = env.SWITCHLM_CHATGPT_CLIENT_ID;
-
-  if (!authorizeUrl || !tokenUrl || !clientId) {
-    throw new Error(
-      "Set SWITCHLM_CHATGPT_AUTHORIZE_URL, SWITCHLM_CHATGPT_TOKEN_URL, and SWITCHLM_CHATGPT_CLIENT_ID",
-    );
-  }
-
   return {
-    authorizeUrl,
-    tokenUrl,
-    clientId,
-    scopes: env.SWITCHLM_CHATGPT_SCOPES?.split(/\s+/).filter(Boolean),
+    authorizeUrl: env.SWITCHLM_CHATGPT_AUTHORIZE_URL ?? unstableChatGptOAuthDefaults.authorizeUrl,
+    tokenUrl: env.SWITCHLM_CHATGPT_TOKEN_URL ?? unstableChatGptOAuthDefaults.tokenUrl,
+    clientId: env.SWITCHLM_CHATGPT_CLIENT_ID ?? unstableChatGptOAuthDefaults.clientId,
+    scopes: env.SWITCHLM_CHATGPT_SCOPES?.split(/\s+/).filter(Boolean) ?? unstableChatGptOAuthDefaults.scopes,
+    extraParams: unstableChatGptOAuthDefaults.extraParams,
   };
 }
 

@@ -7,6 +7,9 @@ const config = {
   tokenUrl: "https://example.test/oauth/token",
   clientId: "switchlm-client",
   scopes: ["openid", "profile"],
+  extraParams: {
+    prompt: "login",
+  },
 };
 
 describe("ChatGptOAuth", () => {
@@ -25,6 +28,7 @@ describe("ChatGptOAuth", () => {
     expect(url.searchParams.get("code_challenge")).toBe(pkceChallenge("verifier"));
     expect(url.searchParams.get("state")).toBe("state");
     expect(url.searchParams.get("scope")).toBe("openid profile");
+    expect(url.searchParams.get("prompt")).toBe("login");
   });
 
   it("exchanges an authorization code for tokens", async () => {

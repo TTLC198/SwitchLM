@@ -65,7 +65,16 @@ ChatGPT/Codex provider example:
 }
 ```
 
-ChatGPT OAuth settings are read from env:
+ChatGPT OAuth settings have unstable Codex defaults from OmniRoute:
+
+```text
+authorizeUrl: https://auth.openai.com/oauth/authorize
+tokenUrl: https://auth.openai.com/oauth/token
+clientId: app_EMoamEEZ73f0CkXaXp7hrann
+scopes: openid profile email offline_access
+```
+
+Override them with env if needed:
 
 ```bash
 set SWITCHLM_CHATGPT_AUTHORIZE_URL=...

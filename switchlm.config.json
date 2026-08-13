@@ -1,0 +1,22 @@
+{
+  "host": "127.0.0.1",
+  "port": 8787,
+  "routing": {
+    "solThreshold": 5
+  },
+  "providers": {
+    "luna": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.com/backend-api/codex/responses",
+      "model": "gpt-5.6-luna",
+      "account": "default"
+    },
+    "sol": {
+      "type": "codex-chatgpt",
+      "responsesUrl": "https://chatgpt.com/backend-api/codex/responses",
+      "model": "gpt-5.6-sol",
+      "account": "default"
+    }
+  },
+  "logLevel": "info"
+}

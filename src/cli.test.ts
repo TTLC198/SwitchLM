@@ -32,6 +32,12 @@ describe("parseCommand", () => {
       tokenUrl: "https://example.test/token",
       clientId: "client",
       scopes: ["openid", "profile"],
+      extraParams: {
+        id_token_add_organizations: "true",
+        codex_cli_simplified_flow: "true",
+        originator: "codex_cli_rs",
+        prompt: "login",
+      },
     });
   });
 });

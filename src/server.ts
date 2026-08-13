@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import { ChatGptOAuth } from "./auth/chatgpt-oauth.js";
+import { unstableChatGptOAuthDefaults } from "./auth/chatgpt-oauth-defaults.js";
 import { TokenStore } from "./auth/token-store.js";
 import type { AppConfig, ProviderConfig } from "./config.js";
 import { CodexChatGptProvider } from "./providers/codex-chatgpt-provider.js";
@@ -46,19 +47,12 @@ function createProvider(config: ProviderConfig): Provider {
 }
 
 function chatGptOAuthFromEnv(): ChatGptOAuth | undefined {
-  const authorizeUrl = process.env.SWITCHLM_CHATGPT_AUTHORIZE_URL;
-  const tokenUrl = process.env.SWITCHLM_CHATGPT_TOKEN_URL;
-  const clientId = process.env.SWITCHLM_CHATGPT_CLIENT_ID;
-
-  if (!authorizeUrl || !tokenUrl || !clientId) {
-    return undefined;
-  }
-
   return new ChatGptOAuth({
-    authorizeUrl,
-    tokenUrl,
-    clientId,
-    scopes: process.env.SWITCHLM_CHATGPT_SCOPES?.split(/\s+/).filter(Boolean),
+    authorizeUrl: process.env.SWITCHLM_CHATGPT_AUTHORIZE_URL ?? unstableChatGptOAuthDefaults.authorizeUrl,
+    tokenUrl: process.env.SWITCHLM_CHATGPT_TOKEN_URL ?? unstableChatGptOAuthDefaults.tokenUrl,
+    clientId: process.env.SWITCHLM_CHATGPT_CLIENT_ID ?? unstableChatGptOAuthDefaults.clientId,
+    scopes: process.env.SWITCHLM_CHATGPT_SCOPES?.split(/\s+/).filter(Boolean) ?? unstableChatGptOAuthDefaults.scopes,
+    extraParams: unstableChatGptOAuthDefaults.extraParams,
   });
 }
 
