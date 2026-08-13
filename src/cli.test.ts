@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
-import { chatGptOAuthConfigFromEnv, healthUrl, parseCommand } from "./cli.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { AppConfig } from "./config.js";
+import { chatGptOAuthConfigFromEnv, fetchStats, healthUrl, parseCommand } from "./cli.js";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("parseCommand", () => {
   it("accepts MVP command names", () => {
     expect(parseCommand(["start"])).toBe("start");
     expect(parseCommand(["status"])).toBe("status");
+    expect(parseCommand(["stats"])).toBe("stats");
     expect(parseCommand(["login", "chatgpt"])).toBe("login chatgpt");
     expect(parseCommand(["logout", "chatgpt"])).toBe("logout chatgpt");
     expect(parseCommand(["auth", "status"])).toBe("auth status");
@@ -17,6 +23,21 @@ describe("parseCommand", () => {
   it("builds the health URL from config", () => {
     expect(healthUrl({ host: "127.0.0.1", port: 8787 })).toBe("http://127.0.0.1:8787/health");
     expect(healthUrl({ host: "0.0.0.0", port: 8787 })).toBe("http://127.0.0.1:8787/health");
+  });
+
+  it("fetches token statistics from the local server", async () => {
+    const stats = {
+      total: { requests: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      models: {
+        luna: { requests: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        sol: { requests: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+      },
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(stats)));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(fetchStats({ host: "0.0.0.0", port: 8787 } as AppConfig)).resolves.toEqual(stats);
+    expect(fetchMock).toHaveBeenCalledWith("http://127.0.0.1:8787/stats");
   });
 
   it("reads ChatGPT OAuth config from env", () => {
