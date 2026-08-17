@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { z } from "zod";
+import { defaultTrainingPolicy, trainingPolicySchema, validateTrainingPolicy } from "./router/training-policy.js";
 
 const openAICompatibleProviderConfigSchema = z.object({
   type: z.literal("openai-compatible").default("openai-compatible"),
@@ -33,18 +34,11 @@ const rawConfigSchema = z.object({
     .object({
       solThreshold: z.number().min(0).default(5),
       learnedModelPath: z.string().min(1).optional(),
-      trainingData: z
-        .object({
-          enabled: z.boolean().default(false),
-          filePath: z.string().min(1).optional(),
-          maxRecordBytes: z.number().int().positive().max(1024 * 1024).default(64 * 1024),
-          minIntervalMs: z.number().int().min(0).max(60 * 60 * 1000).default(1_000),
-        })
-        .default({ enabled: false, maxRecordBytes: 64 * 1024, minIntervalMs: 1_000 }),
+      trainingData: trainingPolicySchema.default(defaultTrainingPolicy),
     })
     .default({
       solThreshold: 5,
-      trainingData: { enabled: false, maxRecordBytes: 64 * 1024, minIntervalMs: 1_000 },
+      trainingData: defaultTrainingPolicy,
     }),
   providers: z.object({
     luna: providerConfigSchema,
@@ -68,6 +62,7 @@ export type ProviderConfig = OpenAICompatibleProviderConfig | CodexChatGptProvid
 
 export function parseConfig(input: unknown, env: NodeJS.ProcessEnv = process.env): AppConfig {
   const config = rawConfigSchema.parse(input);
+  validateTrainingPolicy(config.routing.trainingData, env);
 
   return {
     ...config,

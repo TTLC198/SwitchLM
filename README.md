@@ -60,7 +60,10 @@ Configuration example:
     "trainingData": {
       "enabled": false,
       "maxRecordBytes": 65536,
-      "minIntervalMs": 1000
+      "minIntervalMs": 1000,
+      "retentionDays": 30,
+      "allowRequestPreview": false,
+      "hmacKeyEnv": "SWITCHLM_TRAINING_HMAC_KEY"
     }
   },
   "providers": {
@@ -236,7 +239,8 @@ When shadow routing is enabled by an embedding application, `/stats` also expose
 With `logLevel: "info"`, each routing log includes the requested virtual model, selected target, score, and matching reasons without logging prompt contents.
 
 The `codex-chatgpt` provider uses the configured Codex Responses transport URL.
-Training data collection is disabled by default. When explicitly enabled for an offline experiment, the collector writes bounded JSONL records to a local file, rate-limits writes, truncates the request preview, and masks common token and API-key patterns. It does not write to normal routing logs. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
+Training data collection is disabled by default.
+Training collection remains disabled unless `routing.trainingData.enabled` is explicitly set to `true`. Enabled collection requires the HMAC key in the configured environment variable and an absolute file path outside the repository. The policy does not permit prompt content in normal logs or telemetry. When explicitly enabled for an offline experiment, the collector writes bounded JSONL records to a local file, rate-limits writes, truncates the request preview, and masks common token and API-key patterns. It does not write to normal routing logs. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
 
 
 ## Codex
