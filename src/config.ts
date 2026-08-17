@@ -32,6 +32,7 @@ const rawConfigSchema = z.object({
   routing: z
     .object({
       solThreshold: z.number().min(0).default(5),
+      learnedModelPath: z.string().min(1).optional(),
       trainingData: z
         .object({
           enabled: z.boolean().default(false),

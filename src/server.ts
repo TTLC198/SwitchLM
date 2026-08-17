@@ -7,7 +7,7 @@ import { CodexChatGptProvider } from "./providers/codex-chatgpt-provider.js";
 import type { Provider } from "./providers/provider.js";
 import { OpenAICompatibleProvider } from "./providers/openai-compatible-provider.js";
 import { registerResponsesProxy } from "./proxy/responses-proxy.js";
-import { HeuristicRoutingStrategy } from "./router/heuristic-strategy.js";
+import { createLearnedRoutingStrategy } from "./router/learned-strategy.js";
 import { TokenStats } from "./telemetry/token-stats.js";
 import { HttpCodexResponsesTransport } from "./transport/codex-responses-transport.js";
 
@@ -30,7 +30,7 @@ export function buildApp(config: AppConfig) {
       luna: createProvider(config.providers.luna),
       sol: createProvider(config.providers.sol),
     },
-    routingStrategy: new HeuristicRoutingStrategy(config.routing.solThreshold),
+    routingStrategy: createLearnedRoutingStrategy(config.routing.learnedModelPath, config.routing.solThreshold),
     tokenStats,
   });
 
