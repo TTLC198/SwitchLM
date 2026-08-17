@@ -174,4 +174,49 @@ describe("HeuristicRoutingStrategy", () => {
     expect(strategy.route({ model: "router/luna", input: "security audit" }).target).toBe("luna");
     expect(strategy.route({ model: "router/sol", input: "typo" }).target).toBe("sol");
   });
+
+  it.each([
+    {
+      name: "simple rename",
+      input: "Rename this variable.",
+      target: "luna",
+      score: [-2, -2],
+      reasons: ["single rename"],
+    },
+    {
+      name: "architecture at threshold minus one",
+      input: "Review the architecture of one module.",
+      target: "luna",
+      score: [4, 4],
+      reasons: ["architecture"],
+    },
+    {
+      name: "risk at threshold",
+      input: "Investigate this race condition.",
+      target: "sol",
+      score: [5, 5],
+      reasons: ["risk"],
+    },
+    {
+      name: "cross-module change",
+      input: "Redesign the architecture across multiple modules and update src/api.ts and src/server.ts.",
+      target: "sol",
+      score: [11, 13],
+      reasons: ["architecture", "multiple files", "multiple modules", "architecture across modules"],
+    },
+    {
+      name: "diagnostics with stack trace",
+      input: "Debugging this failure.\nError: failed\n    at run (src/app.ts:10:2)",
+      target: "sol",
+      score: [5, 7],
+      reasons: ["diagnostics", "stack trace", "logs", "diagnostics with stack trace"],
+    },
+  ])("routes $name", ({ input, target, score, reasons }) => {
+    const decision = new HeuristicRoutingStrategy().route({ model: "router/auto", input });
+
+    expect(decision.target).toBe(target);
+    expect(decision.score).toBeGreaterThanOrEqual(score[0]);
+    expect(decision.score).toBeLessThanOrEqual(score[1]);
+    expect(decision.reasons).toEqual(expect.arrayContaining(reasons));
+  });
 });
