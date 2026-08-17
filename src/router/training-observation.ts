@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { RoutingDecision } from "./routing-strategy.js";
 import { redactTrainingText, summarizeTrainingFeatures } from "./training-record-builder.js";
 
-const routingObservationSchema = z.object({
+export const routingObservationSchema = z.object({
   schemaVersion: z.literal(1),
   collectedAt: z.string().datetime(),
   requestId: z.string().regex(/^[a-f0-9]{64}$/u),
@@ -37,6 +37,10 @@ export type RoutingObservationInput = {
 };
 
 export type RoutingObservation = z.infer<typeof routingObservationSchema>;
+
+export function parseRoutingObservation(input: unknown): RoutingObservation {
+  return routingObservationSchema.parse(input);
+}
 
 export type TrainingObservationCollectorOptions = {
   enabled?: boolean;

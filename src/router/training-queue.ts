@@ -41,6 +41,10 @@ export class TrainingQueue {
     }
   }
 
+  get path(): string {
+    return this.filePath;
+  }
+
   async list(status?: TrainingQueueStatus): Promise<TrainingQueueEntry[]> {
     const entries = (await this.read()).entries;
     return status ? entries.filter((entry) => entry.status === status) : entries;

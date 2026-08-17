@@ -7,13 +7,14 @@ import type { AppConfig } from "./config.js";
 import { loadConfig } from "./config.js";
 import { startServer } from "./server.js";
 import type { TokenStatsSnapshot } from "./telemetry/token-stats.js";
+import { initializeTrainingStorage, readTrainingReport, readTrainingWorkflowStatus } from "./router/training-workflow.js";
 
-export type CliCommand = "start" | "status" | "stats" | "login chatgpt" | "logout chatgpt" | "auth status";
+export type CliCommand = "start" | "status" | "stats" | "training init" | "training status" | "training report" | "login chatgpt" | "logout chatgpt" | "auth status";
 
 export function parseCommand(args: string[]): CliCommand | undefined {
   const command = args.slice(0, 2).join(" ");
 
-  if (command === "login chatgpt" || command === "logout chatgpt" || command === "auth status") {
+  if (command === "training init" || command === "training status" || command === "training report" || command === "login chatgpt" || command === "logout chatgpt" || command === "auth status") {
     return command;
   }
 
@@ -81,7 +82,7 @@ async function main(): Promise<void> {
   const command = parseCommand(process.argv.slice(2));
 
   if (!command) {
-    console.error("Usage: switchlm <start|status|stats|login chatgpt|logout chatgpt|auth status>");
+    console.error("Usage: switchlm <start|status|stats|training init|training status|training report|login chatgpt|logout chatgpt|auth status>");
     process.exitCode = 1;
     return;
   }
@@ -103,6 +104,18 @@ async function main(): Promise<void> {
   if (command === "stats") {
     const stats = await fetchStats(await loadConfig());
     console.table(statsTable(stats));
+    return;
+  }
+
+  if (command === "training init" || command === "training status" || command === "training report") {
+    const config = await loadConfig();
+    const paths = { observationFilePath: config.routing.trainingData.observationFilePath };
+    const result = command === "training init"
+      ? await initializeTrainingStorage(paths)
+      : command === "training status"
+        ? await readTrainingWorkflowStatus(paths)
+        : await readTrainingReport(paths);
+    console.log(JSON.stringify(result, null, 2));
     return;
   }
 

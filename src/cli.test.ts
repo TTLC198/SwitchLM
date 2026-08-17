@@ -11,6 +11,9 @@ describe("parseCommand", () => {
     expect(parseCommand(["start"])).toBe("start");
     expect(parseCommand(["status"])).toBe("status");
     expect(parseCommand(["stats"])).toBe("stats");
+    expect(parseCommand(["training", "init"])).toBe("training init");
+    expect(parseCommand(["training", "status"])).toBe("training status");
+    expect(parseCommand(["training", "report"])).toBe("training report");
     expect(parseCommand(["login", "chatgpt"])).toBe("login chatgpt");
     expect(parseCommand(["logout", "chatgpt"])).toBe("logout chatgpt");
     expect(parseCommand(["auth", "status"])).toBe("auth status");
