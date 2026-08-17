@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { routingTrainingExampleSchema, type RoutingTrainingExample } from "./training-example.js";
+import { z } from "zod";
 
 export type TrainingRecord = Omit<RoutingTrainingExample, "request" | "schemaVersion"> & {
   schemaVersion: 2;
@@ -17,6 +18,31 @@ export type TrainingRecord = Omit<RoutingTrainingExample, "request" | "schemaVer
   };
   requestPreview?: string;
 };
+
+export const trainingRecordSchema = z.object({
+  schemaVersion: z.literal(2),
+  collectedAt: z.string().datetime(),
+  requestId: z.string().regex(/^[a-f0-9]{64}$/u),
+  features: z.object({
+    charCount: z.number().int().nonnegative(),
+    lineCount: z.number().int().positive(),
+    wordCount: z.number().int().nonnegative(),
+    codeBlockCount: z.number().int().nonnegative(),
+    listItemCount: z.number().int().nonnegative(),
+    hasErrorSignal: z.boolean(),
+    hasPathSignal: z.boolean(),
+    routingFeatures: z.record(z.string(), z.number().finite()),
+  }),
+  results: z.object({
+    luna: z.object({ score: z.number().finite(), passed: z.boolean() }),
+    sol: z.object({ score: z.number().finite(), passed: z.boolean() }),
+  }),
+  preferredModel: z.enum(["luna", "sol"]),
+  evaluation: z.object({
+    method: z.enum(["tests", "build", "typecheck", "human"]),
+  }),
+  requestPreview: z.string().optional(),
+});
 
 export type TrainingRecordBuilderOptions = {
   hmacKey: string;
