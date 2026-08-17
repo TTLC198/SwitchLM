@@ -56,7 +56,12 @@ Configuration example:
   "port": 8787,
   "bodyLimit": 16777216,
   "routing": {
-    "solThreshold": 5
+    "solThreshold": 5,
+    "trainingData": {
+      "enabled": false,
+      "maxRecordBytes": 65536,
+      "minIntervalMs": 1000
+    }
   },
   "providers": {
     "luna": {
@@ -229,7 +234,8 @@ The response contains routing and token totals for Luna, Sol, and both providers
 
 With `logLevel: "info"`, each routing log includes the requested virtual model, selected target, score, and matching reasons without logging prompt contents.
 
-The `codex-chatgpt` provider uses the configured Codex Responses transport URL. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
+The `codex-chatgpt` provider uses the configured Codex Responses transport URL.
+Training data collection is disabled by default. When explicitly enabled for an offline experiment, the collector writes bounded JSONL records to a local file, rate-limits writes, truncates the request preview, and masks common token and API-key patterns. It does not write to normal routing logs. SwitchLM does not bundle provider-specific OAuth client credentials; set them explicitly through env.
 
 
 ## Codex

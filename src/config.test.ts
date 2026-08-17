@@ -66,6 +66,9 @@ describe("parseConfig", () => {
     expect(config.host).toBe("127.0.0.1");
     expect(config.port).toBe(8787);
     expect(config.routing.solThreshold).toBe(5);
+    expect(config.routing.trainingData.enabled).toBe(false);
+    expect(config.routing.trainingData.maxRecordBytes).toBe(64 * 1024);
+    expect(config.routing.trainingData.minIntervalMs).toBe(1_000);
     expect(config.providers.luna.type).toBe("openai-compatible");
     expect(config.providers.sol.type).toBe("openai-compatible");
     expect(config.providers.luna.type === "openai-compatible" && config.providers.luna.apiKey).toBe("luna-secret");

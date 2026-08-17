@@ -32,8 +32,19 @@ const rawConfigSchema = z.object({
   routing: z
     .object({
       solThreshold: z.number().min(0).default(5),
+      trainingData: z
+        .object({
+          enabled: z.boolean().default(false),
+          filePath: z.string().min(1).optional(),
+          maxRecordBytes: z.number().int().positive().max(1024 * 1024).default(64 * 1024),
+          minIntervalMs: z.number().int().min(0).max(60 * 60 * 1000).default(1_000),
+        })
+        .default({ enabled: false, maxRecordBytes: 64 * 1024, minIntervalMs: 1_000 }),
     })
-    .default({ solThreshold: 5 }),
+    .default({
+      solThreshold: 5,
+      trainingData: { enabled: false, maxRecordBytes: 64 * 1024, minIntervalMs: 1_000 },
+    }),
   providers: z.object({
     luna: providerConfigSchema,
     sol: providerConfigSchema,
