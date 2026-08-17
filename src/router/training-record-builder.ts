@@ -1,0 +1,86 @@
+import { createHmac } from "node:crypto";
+import { routingTrainingExampleSchema, type RoutingTrainingExample } from "./training-example.js";
+
+export type TrainingRecord = Omit<RoutingTrainingExample, "request" | "schemaVersion"> & {
+  schemaVersion: 2;
+  collectedAt: string;
+  requestId: string;
+  features: {
+    charCount: number;
+    lineCount: number;
+    wordCount: number;
+    codeBlockCount: number;
+    listItemCount: number;
+    hasErrorSignal: boolean;
+    hasPathSignal: boolean;
+  };
+  requestPreview?: string;
+};
+
+export type TrainingRecordBuilderOptions = {
+  hmacKey: string;
+  allowRequestPreview?: boolean;
+  maxPreviewChars?: number;
+  collectedAt?: string;
+};
+
+export function buildTrainingRecord(
+  example: RoutingTrainingExample,
+  options: TrainingRecordBuilderOptions,
+): TrainingRecord | null {
+  const parsedExample = routingTrainingExampleSchema.strict().safeParse(example);
+  if (!parsedExample.success || !options.hmacKey || !example.request.trim() || !Number.isFinite(Date.parse(options.collectedAt ?? ""))) {
+    return null;
+  }
+
+  const request = redactTrainingText(parsedExample.data.request);
+  if (!request) {
+    return null;
+  }
+
+  const record: TrainingRecord = {
+    schemaVersion: 2,
+    collectedAt: options.collectedAt!,
+    requestId: createHmac("sha256", options.hmacKey).update(example.request).digest("hex"),
+    features: summarizeFeatures(request),
+    results: parsedExample.data.results,
+    preferredModel: parsedExample.data.preferredModel,
+    evaluation: parsedExample.data.evaluation,
+  };
+
+  if (options.allowRequestPreview) {
+    const preview = request.slice(0, options.maxPreviewChars ?? 500);
+    if (preview) {
+      record.requestPreview = preview;
+    }
+  }
+
+  return record;
+}
+
+export function redactTrainingText(text: string): string {
+  return text
+    .replace(/\bBearer\s+[^\s"',;]+/giu, "Bearer [REDACTED]")
+    .replace(/\b(?:authorization|cookie|set-cookie)\s*[:=]\s*[^\n]+/giu, "$&".replace(/[^:]+$/, "[REDACTED]"))
+    .replace(/\b(?:oauth[_ -]?code|code|token|api[_ -]?key|password|secret)\s*[:=]\s*["']?[^\s"',;]+/giu, "$1=[REDACTED]")
+    .replace(/\bsk-[A-Za-z0-9_-]+\b/gu, "[REDACTED]")
+    .replace(/[A-Z]:\\Users\\([^\\/\s]+)/giu, "[LOCAL_PATH]")
+    .replace(/\/(?:Users|home)\/[^/\s]+/giu, "[LOCAL_PATH]")
+    .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/gu, "[REDACTED_EMAIL]")
+    .trim();
+}
+
+function summarizeFeatures(request: string): TrainingRecord["features"] {
+  return {
+    charCount: request.length,
+    lineCount: request.split(/\r?\n/u).length,
+    wordCount: request.match(/\S+/gu)?.length ?? 0,
+    codeBlockCount: Math.floor((request.match(/```/gu)?.length ?? 0) / 2),
+    listItemCount: request.match(/(?:^|\n)\s*(?:[-*]|\d+[.)])\s+/gmu)?.length ?? 0,
+    hasErrorSignal: /\b(?:error|exception|failed|failure|stack trace)\b/iu.test(request),
+    hasPathSignal: /(?:[A-Z]:\\|\/(?:Users|home)\/|\b\w+[\\/]\w+)/u.test(request),
+  };
+}
+
+
+

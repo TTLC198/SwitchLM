@@ -32,6 +32,8 @@ describe("RoutingTrainingCollector", () => {
     const collector = new RoutingTrainingCollector({
       enabled: true,
       filePath,
+      hmacKey: "test-key",
+      allowRequestPreview: true,
       maxRequestChars: 40,
       minIntervalMs: 1_000,
     });
@@ -46,7 +48,7 @@ describe("RoutingTrainingCollector", () => {
     expect(records[0]).not.toContain("bearer-secret");
     expect(records[0]).not.toContain("token-secret");
     expect(records[0]).not.toContain("sk-live-secret");
-    expect(JSON.parse(records[0]).request).toHaveLength(40);
+    expect(JSON.parse(records[0]).requestPreview).toHaveLength(40);
   });
 
   it("skips records larger than the configured limit", async () => {
@@ -58,3 +60,4 @@ describe("RoutingTrainingCollector", () => {
     await expect(readFile(filePath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
   });
 });
+
