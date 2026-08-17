@@ -4,6 +4,7 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import { z } from "zod";
 import type { Provider, ProviderRequest } from "../providers/provider.js";
 import type { RoutingStrategy } from "../router/routing-strategy.js";
+import type { RoutingObservationInput } from "../router/training-observation.js";
 import type { TokenStats, TokenUsage } from "../telemetry/token-stats.js";
 
 const responsesRequestSchema = z
@@ -21,6 +22,7 @@ export type ResponsesProxyDeps = {
   };
   routingStrategy: RoutingStrategy;
   tokenStats: TokenStats;
+  trainingObserver?: (observation: RoutingObservationInput) => Promise<boolean> | boolean;
 };
 
 export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProxyDeps): void {
@@ -32,6 +34,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
     }
 
     const body = parsed.data;
+    const startedAt = Date.now();
     const decision = deps.routingStrategy.route({ model: body.model, input: body.input });
     deps.tokenStats.recordRouting(decision.target);
     request.log.info({ requestedModel: body.model, routing: decision }, "SwitchLM routing decision");
@@ -49,6 +52,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       reply.header("cache-control", upstream.headers.get("cache-control") ?? "no-cache");
 
       if (!upstream.body) {
+        scheduleObservation(deps, body.input, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt);
         return reply.send();
       }
 
@@ -58,12 +62,19 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
           deps.tokenStats.recordUsage(decision.target, usage);
           request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
         },
+        () => scheduleObservation(deps, body.input, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt),
       );
 
       return reply.send(stream);
     }
 
-    const response = await deps.providers[decision.target].createResponse(body as ProviderRequest);
+    let response: unknown;
+    try {
+      response = await deps.providers[decision.target].createResponse(body as ProviderRequest);
+    } catch (error) {
+      scheduleObservation(deps, body.input, body.model, decision, false, startedAt);
+      throw error;
+    }
     const usage = parseUsage(response);
 
     if (usage) {
@@ -71,11 +82,33 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
     }
 
+    scheduleObservation(deps, body.input, body.model, decision, true, startedAt);
     return response;
   });
 }
 
-function observeUsage(stream: Readable, record: (usage: TokenUsage) => void): Transform {
+function scheduleObservation(
+  deps: ResponsesProxyDeps,
+  input: unknown,
+  requestedModel: string,
+  decision: RoutingObservationInput["decision"],
+  success: boolean,
+  startedAt: number,
+): void {
+  if (!deps.trainingObserver || requestedModel !== "router/auto") return;
+  const observation: RoutingObservationInput = {
+    input,
+    requestedModel,
+    decision,
+    success,
+    latencyMs: Math.max(0, Date.now() - startedAt),
+  };
+  queueMicrotask(() => {
+    void Promise.resolve(deps.trainingObserver?.(observation)).catch(() => undefined);
+  });
+}
+
+function observeUsage(stream: Readable, record: (usage: TokenUsage) => void, onComplete: () => void): Transform {
   const decoder = new TextDecoder();
   let buffer = "";
 
@@ -88,6 +121,7 @@ function observeUsage(stream: Readable, record: (usage: TokenUsage) => void): Tr
     flush(callback) {
       buffer += decoder.decode();
       consumeEvents(buffer, record);
+      onComplete();
       callback();
     },
   });

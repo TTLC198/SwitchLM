@@ -69,7 +69,7 @@ export function buildTrainingRecord(
     schemaVersion: 2,
     collectedAt: options.collectedAt!,
     requestId: createHmac("sha256", options.hmacKey).update(example.request).digest("hex"),
-    features: summarizeFeatures(request),
+    features: summarizeTrainingFeatures(request),
     results: parsedExample.data.results,
     preferredModel: parsedExample.data.preferredModel,
     evaluation: parsedExample.data.evaluation,
@@ -113,7 +113,7 @@ function extractRoutingFeatures(request: string): Record<string, number> {
   return Object.fromEntries(Object.entries(signals).filter(([, values]) => values.some((value) => text.includes(value))).map(([name]) => [name, 1]));
 }
 
-function summarizeFeatures(request: string): TrainingRecord["features"] {
+export function summarizeTrainingFeatures(request: string): TrainingRecord["features"] {
   return {
     charCount: request.length,
     lineCount: request.split(/\r?\n/u).length,

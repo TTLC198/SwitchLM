@@ -10,6 +10,7 @@ import { registerResponsesProxy } from "./proxy/responses-proxy.js";
 import { HeuristicRoutingStrategy } from "./router/heuristic-strategy.js";
 import { createLearnedRoutingStrategy } from "./router/learned-strategy.js";
 import { ShadowRoutingStrategy } from "./router/shadow-routing.js";
+import { TrainingObservationCollector } from "./router/training-observation.js";
 import { TokenStats } from "./telemetry/token-stats.js";
 import { HttpCodexResponsesTransport } from "./transport/codex-responses-transport.js";
 
@@ -34,9 +35,25 @@ export function buildApp(config: AppConfig) {
     },
     routingStrategy: createRoutingStrategy(config, tokenStats),
     tokenStats,
+    trainingObserver: createTrainingObserver(config),
   });
 
   return app;
+}
+
+function createTrainingObserver(config: AppConfig) {
+  const policy = config.routing.trainingData;
+  if (!policy.enabled) return undefined;
+
+  const collector = new TrainingObservationCollector({
+    enabled: true,
+    filePath: policy.observationFilePath,
+    maxRecordBytes: policy.maxRecordBytes,
+    minIntervalMs: policy.minIntervalMs,
+    retentionDays: policy.retentionDays,
+    hmacKey: process.env[policy.hmacKeyEnv],
+  });
+  return (observation: Parameters<TrainingObservationCollector["record"]>[0]) => collector.record(observation);
 }
 
 function createProvider(config: ProviderConfig): Provider {

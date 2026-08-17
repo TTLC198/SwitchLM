@@ -33,6 +33,32 @@ describe("registerResponsesProxy", () => {
     expect(luna.createResponse).not.toHaveBeenCalled();
   });
 
+  it("schedules runtime observation without waiting for the observer", async () => {
+    const observer = vi.fn().mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return true;
+    });
+    const app = Fastify({ logger: false });
+    registerResponsesProxy(app, {
+      providers: {
+        luna: { createResponse: vi.fn() },
+        sol: { createResponse: vi.fn().mockResolvedValue({ id: "sol_resp" }) },
+      },
+      routingStrategy: { route: vi.fn().mockReturnValue({ target: "sol", score: 5, reasons: ["race condition"] }) },
+      tokenStats: new TokenStats(),
+      trainingObserver: observer,
+    });
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/v1/responses",
+      payload: { model: "router/auto", input: "race condition" },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(observer).toHaveBeenCalledTimes(1);
+    await app.close();
+  });
+
   it("rejects unsupported virtual models", async () => {
     const app = Fastify({ logger: false });
     registerResponsesProxy(app, {
