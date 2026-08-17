@@ -57,6 +57,8 @@ Configuration example:
   "bodyLimit": 16777216,
   "routing": {
     "solThreshold": 5,
+    "mode": "heuristic",
+    "shadowSampling": 1,
     "trainingData": {
       "enabled": false,
       "maxRecordBytes": 65536,
@@ -264,3 +266,9 @@ Use `router/luna` or `router/sol` when a request must bypass automatic routing.
 SwitchLM is distributed under the MIT License. See `LICENSE`.
 
 Parts of the ChatGPT/Codex OAuth integration are based on or adapted from OmniRoute. See `THIRD_PARTY_NOTICES.md` for attribution and third-party license terms.
+
+### Learned routing rollout
+
+`routing.mode` поддерживает `heuristic` (безопасный default), `shadow` и `learned`. ¬ `shadow` provider всегда выбираетс€ heuristic-решением, а learned strategy используетс€ только дл€ агрегированного сравнени€. `shadowSampling` ограничивает долю сравнений; ручные `router/luna` и `router/sol` не участвуют в shadow-оценке.
+
+ƒл€ мгновенного rollback установите `routing.mode` в `heuristic` или удалите `routing.learnedModelPath`, затем перезапустите SwitchLM. ћетрики shadow доступны через `GET /stats` и не содержат prompt или provider output.

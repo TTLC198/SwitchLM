@@ -31,7 +31,11 @@ describe("TokenStats", () => {
         primarySolRequests: 0,
         shadowSolRequests: 1,
         latencyMsTotal: 2.5,
+        disagreementRate: 1,
+        shadowSolRate: 1,
+        averageLatencyMs: 2.5,
       },
     });
   });
 });
+

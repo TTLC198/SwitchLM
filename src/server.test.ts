@@ -53,10 +53,27 @@ describe("buildApp", () => {
         primarySolRequests: 0,
         shadowSolRequests: 0,
         latencyMsTotal: 0,
+        disagreementRate: 0,
+        shadowSolRate: 0,
+        averageLatencyMs: 0,
       },
     });
   });
 
+  it("keeps heuristic provider selection in shadow mode and skips manual shadowing", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "response-1" })));
+    vi.stubGlobal("fetch", fetchMock);
+    const app = buildApp(parseConfig({ ...config, routing: { mode: "shadow", shadowSampling: 1 } }));
+
+    await app.inject({ method: "POST", url: "/v1/responses", payload: { model: "router/auto", input: "Rename this variable." } });
+    await app.inject({ method: "POST", url: "/v1/responses", payload: { model: "router/luna", input: "Investigate this race condition." } });
+    const stats = await app.inject({ method: "GET", url: "/stats" });
+    await app.close();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://luna.example.test/v1/responses", expect.anything());
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://luna.example.test/v1/responses", expect.anything());
+    expect(stats.json().shadow.comparisons).toBe(1);
+  });
   it("accepts Responses API requests larger than Fastify's default limit", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "response-1" })));
     vi.stubGlobal("fetch", fetchMock);
@@ -119,3 +136,5 @@ describe("buildApp", () => {
     });
   });
 });
+
+

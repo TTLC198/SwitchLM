@@ -33,11 +33,15 @@ const rawConfigSchema = z.object({
   routing: z
     .object({
       solThreshold: z.number().min(0).default(5),
+      mode: z.enum(["heuristic", "shadow", "learned"]).default("heuristic"),
+      shadowSampling: z.number().min(0).max(1).default(1),
       learnedModelPath: z.string().min(1).optional(),
       trainingData: trainingPolicySchema.default(defaultTrainingPolicy),
     })
     .default({
       solThreshold: 5,
+      mode: "heuristic",
+      shadowSampling: 1,
       trainingData: defaultTrainingPolicy,
     }),
   providers: z.object({
@@ -106,3 +110,6 @@ export async function loadConfig(path?: string, env: NodeJS.ProcessEnv = process
 
   throw new Error(`SwitchLM config not found. Checked:\n- ${paths.join("\n- ")}`);
 }
+
+
+

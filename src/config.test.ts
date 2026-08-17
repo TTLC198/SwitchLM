@@ -66,6 +66,8 @@ describe("parseConfig", () => {
     expect(config.host).toBe("127.0.0.1");
     expect(config.port).toBe(8787);
     expect(config.routing.solThreshold).toBe(5);
+    expect(config.routing.mode).toBe("heuristic");
+    expect(config.routing.shadowSampling).toBe(1);
     expect(config.routing.learnedModelPath).toBeUndefined();
     expect(config.routing.trainingData.enabled).toBe(false);
     expect(config.routing.trainingData.maxRecordBytes).toBe(64 * 1024);
@@ -77,6 +79,13 @@ describe("parseConfig", () => {
     expect(config.providers.sol.type).toBe("openai-compatible");
     expect(config.providers.luna.type === "openai-compatible" && config.providers.luna.apiKey).toBe("luna-secret");
     expect(config.providers.sol.type === "openai-compatible" && config.providers.sol.apiKey).toBe("sol-secret");
+  });
+
+  it("accepts controlled routing modes and shadow sampling", () => {
+    const config = parseConfig({ ...validConfig, routing: { mode: "shadow", shadowSampling: 0.25 } });
+
+    expect(config.routing.mode).toBe("shadow");
+    expect(config.routing.shadowSampling).toBe(0.25);
   });
 
   it("accepts ChatGPT Codex provider config", () => {
@@ -163,3 +172,4 @@ describe("loadConfig", () => {
     expect((error as Error).message).toContain(globalPath);
   });
 });
+

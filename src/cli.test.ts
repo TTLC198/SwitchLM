@@ -32,7 +32,7 @@ describe("parseCommand", () => {
         luna: { routedRequests: 1, measuredResponses: 1, inputTokens: 10, outputTokens: 5, totalTokens: 15 },
         sol: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       },
-      shadow: { comparisons: 0, disagreements: 0, shadowErrors: 0, primarySolRequests: 0, shadowSolRequests: 0, latencyMsTotal: 0 },
+      shadow: { comparisons: 0, disagreements: 0, shadowErrors: 0, primarySolRequests: 0, shadowSolRequests: 0, latencyMsTotal: 0, disagreementRate: 0, shadowSolRate: 0, averageLatencyMs: 0 },
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(stats)));
     vi.stubGlobal("fetch", fetchMock);
@@ -49,7 +49,7 @@ describe("parseCommand", () => {
           luna: { routedRequests: 2, measuredResponses: 1, inputTokens: 4, outputTokens: 2, totalTokens: 6 },
           sol: { routedRequests: 1, measuredResponses: 1, inputTokens: 6, outputTokens: 3, totalTokens: 9 },
         },
-        shadow: { comparisons: 0, disagreements: 0, shadowErrors: 0, primarySolRequests: 0, shadowSolRequests: 0, latencyMsTotal: 0 },
+        shadow: { comparisons: 0, disagreements: 0, shadowErrors: 0, primarySolRequests: 0, shadowSolRequests: 0, latencyMsTotal: 0, disagreementRate: 0, shadowSolRate: 0, averageLatencyMs: 0 },
       }),
     ).toEqual({
       luna: { routed: 2, measured: 1, missing: 1, inputTokens: 4, outputTokens: 2, totalTokens: 6 },
@@ -83,3 +83,5 @@ describe("parseCommand", () => {
     });
   });
 });
+
+

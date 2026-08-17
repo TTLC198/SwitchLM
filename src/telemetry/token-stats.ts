@@ -20,10 +20,15 @@ export type ShadowStatsEntry = {
   latencyMsTotal: number;
 };
 
+export type ShadowStatsSnapshot = ShadowStatsEntry & {
+  disagreementRate: number;
+  shadowSolRate: number;
+  averageLatencyMs: number;
+};
 export type TokenStatsSnapshot = {
   total: TokenStatsEntry;
   models: Record<RoutingTarget, TokenStatsEntry>;
-  shadow: ShadowStatsEntry;
+  shadow: ShadowStatsSnapshot;
 };
 
 const emptyEntry = (): TokenStatsEntry => ({
@@ -44,7 +49,7 @@ const emptyShadowEntry = (): ShadowStatsEntry => ({
 });
 
 export class TokenStats {
-  private readonly entries: TokenStatsSnapshot = {
+  private readonly entries: { total: TokenStatsEntry; models: Record<RoutingTarget, TokenStatsEntry>; shadow: ShadowStatsEntry } = {
     total: emptyEntry(),
     models: { luna: emptyEntry(), sol: emptyEntry() },
     shadow: emptyShadowEntry(),
@@ -76,7 +81,16 @@ export class TokenStats {
   }
 
   snapshot(): TokenStatsSnapshot {
-    return structuredClone(this.entries);
+    const snapshot = structuredClone(this.entries);
+    return {
+      ...snapshot,
+      shadow: {
+        ...snapshot.shadow,
+        disagreementRate: snapshot.shadow.comparisons ? snapshot.shadow.disagreements / snapshot.shadow.comparisons : 0,
+        shadowSolRate: snapshot.shadow.comparisons ? snapshot.shadow.shadowSolRequests / snapshot.shadow.comparisons : 0,
+        averageLatencyMs: snapshot.shadow.comparisons ? snapshot.shadow.latencyMsTotal / snapshot.shadow.comparisons : 0,
+      },
+    };
   }
 }
 
@@ -86,3 +100,5 @@ function addUsage(entry: TokenStatsEntry, usage: TokenUsage): void {
   entry.outputTokens += usage.outputTokens;
   entry.totalTokens += usage.totalTokens;
 }
+
+

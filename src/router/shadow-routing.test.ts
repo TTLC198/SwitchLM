@@ -21,6 +21,31 @@ describe("ShadowRoutingStrategy", () => {
     });
   });
 
+  it("does not shadow manual model selections", () => {
+    const observe = vi.fn();
+    const strategy = new ShadowRoutingStrategy(
+      new HeuristicRoutingStrategy(),
+      { route: () => ({ target: "sol", score: 1, reasons: ["shadow"] }) },
+      observe,
+    );
+
+    expect(strategy.route({ model: "router/luna", input: "Investigate this race condition." }).target).toBe("luna");
+    expect(observe).not.toHaveBeenCalled();
+  });
+
+  it("applies sample rate", () => {
+    const observe = vi.fn();
+    const strategy = new ShadowRoutingStrategy(
+      new HeuristicRoutingStrategy(),
+      { route: () => ({ target: "sol", score: 1, reasons: ["shadow"] }) },
+      observe,
+      { sampleRate: 0, random: () => 0 },
+    );
+
+    strategy.route({ model: "router/auto", input: "Investigate this race condition." });
+    expect(observe).not.toHaveBeenCalled();
+  });
+
   it("does not let a shadow failure affect the primary decision", () => {
     const observe = vi.fn();
     const strategy = new ShadowRoutingStrategy(
