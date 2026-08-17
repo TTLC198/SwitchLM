@@ -1,5 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { parseConfig } from "./config.js";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { loadConfig, parseConfig } from "./config.js";
 
 const validConfig = {
   providers: {
@@ -15,6 +18,35 @@ const validConfig = {
     },
   },
 };
+
+const tempDirectories: string[] = [];
+
+afterEach(async () => {
+  vi.restoreAllMocks();
+  vi.unstubAllEnvs();
+  await Promise.all(tempDirectories.splice(0).map((path) => rm(path, { recursive: true, force: true })));
+});
+
+async function createConfigSandbox() {
+  const root = await mkdtemp(join(tmpdir(), "switchlm-config-"));
+  const project = join(root, "project");
+  const home = join(root, "home");
+  const localPath = join(project, "switchlm.config.json");
+  const globalPath = join(home, ".switchlm", "config.json");
+
+  tempDirectories.push(root);
+  await mkdir(join(home, ".switchlm"), { recursive: true });
+  await mkdir(project);
+  vi.spyOn(process, "cwd").mockReturnValue(project);
+  vi.stubEnv("HOME", home);
+  vi.stubEnv("USERPROFILE", home);
+
+  return { root, localPath, globalPath };
+}
+
+function configWithPort(port: number) {
+  return JSON.stringify({ ...validConfig, port });
+}
 
 describe("parseConfig", () => {
   it("uses a 16 MiB request body limit by default", () => {
@@ -69,5 +101,58 @@ describe("parseConfig", () => {
         },
       }),
     ).toThrow();
+  });
+});
+
+describe("loadConfig", () => {
+  it("prefers the local config over the global config", async () => {
+    const { localPath, globalPath } = await createConfigSandbox();
+    await writeFile(localPath, configWithPort(1111));
+    await writeFile(globalPath, configWithPort(2222));
+
+    expect((await loadConfig()).port).toBe(1111);
+  });
+
+  it("uses the global config when the local config is absent", async () => {
+    const { globalPath } = await createConfigSandbox();
+    await writeFile(globalPath, configWithPort(2222));
+
+    expect((await loadConfig()).port).toBe(2222);
+  });
+
+  it("uses an explicit path without fallback", async () => {
+    const { root, localPath, globalPath } = await createConfigSandbox();
+    const explicitPath = join(root, "explicit.json");
+    await writeFile(localPath, configWithPort(1111));
+    await writeFile(globalPath, configWithPort(2222));
+    await writeFile(explicitPath, configWithPort(3333));
+
+    expect((await loadConfig(explicitPath)).port).toBe(3333);
+    await expect(loadConfig(join(root, "missing.json"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("does not mask local read errors with the global config", async () => {
+    const { localPath, globalPath } = await createConfigSandbox();
+    await mkdir(localPath);
+    await writeFile(globalPath, configWithPort(2222));
+
+    await expect(loadConfig()).rejects.toBeInstanceOf(Error);
+  });
+
+  it("does not mask invalid local JSON with the global config", async () => {
+    const { localPath, globalPath } = await createConfigSandbox();
+    await writeFile(localPath, "{");
+    await writeFile(globalPath, configWithPort(2222));
+
+    await expect(loadConfig()).rejects.toBeInstanceOf(SyntaxError);
+  });
+
+  it("lists both checked paths when no config exists", async () => {
+    const { localPath, globalPath } = await createConfigSandbox();
+    const error = await loadConfig().catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain(localPath);
+    expect((error as Error).message).toContain(globalPath);
   });
 });

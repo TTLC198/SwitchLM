@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { z } from "zod";
 
 const openAICompatibleProviderConfigSchema = z.object({
@@ -75,10 +77,25 @@ function withProviderSecret(
   return { ...provider, apiKey: env[provider.apiKeyEnv] };
 }
 
-export async function loadConfig(
-  path = "switchlm.config.json",
-  env: NodeJS.ProcessEnv = process.env,
-): Promise<AppConfig> {
-  const text = await readFile(path, "utf8");
-  return parseConfig(JSON.parse(text), env);
+export function resolveConfigPaths(path?: string): string[] {
+  return path === undefined
+    ? [resolve("switchlm.config.json"), join(homedir(), ".switchlm", "config.json")]
+    : [path];
+}
+
+export async function loadConfig(path?: string, env: NodeJS.ProcessEnv = process.env): Promise<AppConfig> {
+  const paths = resolveConfigPaths(path);
+
+  for (const configPath of paths) {
+    try {
+      const text = await readFile(configPath, "utf8");
+      return parseConfig(JSON.parse(text), env);
+    } catch (error) {
+      if (path !== undefined || !(error instanceof Error && "code" in error && error.code === "ENOENT")) {
+        throw error;
+      }
+    }
+  }
+
+  throw new Error(`SwitchLM config not found. Checked:\n- ${paths.join("\n- ")}`);
 }

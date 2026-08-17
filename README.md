@@ -39,7 +39,16 @@ npm run build
 
 ## Configure
 
-Create `switchlm.config.json` in the project root:
+Create the global user config at `~/.switchlm/config.json` (`%USERPROFILE%\.switchlm\config.json` on Windows) so SwitchLM commands work from any directory. A project-level `./switchlm.config.json` overrides the global config when both exist.
+
+To move an existing project config on PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.switchlm"
+Move-Item .\switchlm.config.json "$HOME\.switchlm\config.json"
+```
+
+Configuration example:
 
 ```json
 {
