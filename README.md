@@ -190,6 +190,31 @@ Virtual models:
 
 Because each request is evaluated independently, `router/auto` can switch from Luna to Sol or from Sol to Luna within the same session.
 
+## Automatic routing
+
+`router/auto` assigns a score to the latest user message and selects Sol when the score is at least `routing.solThreshold` (default: `5`); otherwise it selects Luna. The decision keeps the score and matching `reasons`, which are also included in routing logs.
+
+Heavy signal groups are counted once each:
+
+- `risk` (`5`): race conditions, deadlocks, concurrency, and security audit/analysis.
+- `architecture` (`4`): architecture, redesign, and large refactoring.
+- `scope` (`3`): multiple modules, cross-module, repository-wide, or entire-repository work.
+- `diagnostics` (`2`): debugging requests.
+
+Structural signals add smaller increments: multiple file paths (`+2`), multiple modules (`+2`), code blocks (`+1`), stack traces (`+2`), logs (`+1`), and two or more list requirements (`+2`). Combination bonuses add `+2` for architecture with multiple modules, diagnostics with a stack trace, and security analysis with a code change.
+
+Obvious local tasks reduce the score when no hard risk signal is present: typo fixes (`-2`), a single rename (`-2`), formatting (`-2`), and a code change in one file (`-1`). These reductions never cancel explicit risk, concurrency, or security-analysis signals.
+
+Examples with the default threshold:
+
+| Request | Score | Model |
+| --- | ---: | --- |
+| `Rename this variable.` | `-2` | Luna |
+| `Review the architecture of one module.` | `4` | Luna |
+| `Investigate this race condition.` | `5` | Sol |
+| `Debugging this failure` with a stack trace | `7` | Sol |
+
+Known limitations: the router is deterministic and keyword-based, structural detection is approximate, and it does not understand task semantics. It analyzes only the latest user message and currently uses a fixed threshold rather than learned weights.
 Streaming requests are passed through as server-sent events.
 
 The `codex-chatgpt` provider authenticates through the SwitchLM OAuth flow and uses the configured Codex Responses transport URL.
