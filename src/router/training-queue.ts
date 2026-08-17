@@ -96,6 +96,22 @@ export class TrainingQueue {
     return entry;
   }
 
+  async prune(retentionDays: number, now = Date.now()): Promise<number> {
+    if (!Number.isInteger(retentionDays) || retentionDays < 1) {
+      throw new Error("Training queue retentionDays must be a positive integer");
+    }
+    const queue = await this.read();
+    const cutoff = now - retentionDays * 24 * 60 * 60 * 1_000;
+    const retained = queue.entries.filter((entry) =>
+      entry.status === "pending"
+      || entry.status === "evaluated"
+      || Date.parse(entry.updatedAt) >= cutoff,
+    );
+    const removed = queue.entries.length - retained.length;
+    if (removed > 0) await this.write({ schemaVersion: 1, entries: retained });
+    return removed;
+  }
+
   private async read(): Promise<{ schemaVersion: 1; entries: TrainingQueueEntry[] }> {
     try {
       return trainingQueueFileSchema.parse(JSON.parse(await readFile(this.filePath, "utf8")));
