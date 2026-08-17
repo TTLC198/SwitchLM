@@ -230,7 +230,8 @@ Token statistics:
 curl http://127.0.0.1:8787/stats
 ```
 
-The response contains routing and token totals for Luna, Sol, and both providers combined. `routedRequests` counts model selections, while `measuredResponses` counts completed responses with valid provider `usage`. The CLI shows their difference as `missing`. Statistics reset when SwitchLM restarts.
+The response contains routing and token totals for Luna, Sol, and both providers combined.
+When shadow routing is enabled by an embedding application, `/stats` also exposes `shadow` metrics: comparison count, disagreements, shadow errors, Sol rates for primary and shadow decisions, and accumulated shadow latency. Shadow decisions never select a provider and no prompt content is stored. `routedRequests` counts model selections, while `measuredResponses` counts completed responses with valid provider `usage`. The CLI shows their difference as `missing`. Statistics reset when SwitchLM restarts.
 
 With `logLevel: "info"`, each routing log includes the requested virtual model, selected target, score, and matching reasons without logging prompt contents.
 

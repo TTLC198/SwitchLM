@@ -46,6 +46,14 @@ describe("buildApp", () => {
         luna: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
         sol: { routedRequests: 0, measuredResponses: 0, inputTokens: 0, outputTokens: 0, totalTokens: 0 },
       },
+      shadow: {
+        comparisons: 0,
+        disagreements: 0,
+        shadowErrors: 0,
+        primarySolRequests: 0,
+        shadowSolRequests: 0,
+        latencyMsTotal: 0,
+      },
     });
   });
 
