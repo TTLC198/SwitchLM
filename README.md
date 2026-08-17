@@ -184,9 +184,29 @@ curl http://127.0.0.1:8787/v1/responses ^
 
 Virtual models:
 
-- `router/auto` routes by deterministic heuristics over user messages only; developer/system context and tool items are ignored.
+- `router/auto` routes by deterministic heuristics.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
+
+### Automatic routing
+
+For `router/auto`, SwitchLM extracts user text, converts it to lowercase, and adds the weights of all matching heavy-task signals. For array inputs, only messages with `role: "user"` are considered; developer/system context, tool calls, and unknown items are ignored.
+
+| Signal | Weight |
+| --- | ---: |
+| `architecture`, `redesign`, `large refactor`, `large refactoring` | 4 |
+| `race condition`, `deadlock`, `security audit`, `security analysis` | 5 |
+| `concurrency` | 4 |
+| `multiple modules`, `cross-module`, `repository-wide`, `entire repo` | 3 |
+| `debugging` | 2 |
+| Input longer than 12,000 characters | 3 |
+
+The total score is compared with `routing.solThreshold`, which defaults to `5`:
+
+- score greater than or equal to the threshold routes to Sol;
+- score below the threshold routes to Luna.
+
+The routing decision includes the selected target, total score, and matching reasons. A long input alone does not select Sol with the default threshold because it adds only 3 points. Text signals currently use English phrases, so prompts in other languages route based only on any matching English phrases and input length.
 
 Streaming requests are passed through as server-sent events.
 
