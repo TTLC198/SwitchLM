@@ -59,7 +59,13 @@ function textFromInput(input: unknown): string {
   }
 
   if (Array.isArray(input)) {
-    return input.map(textFromUserMessage).filter(Boolean).join("\n");
+    for (let index = input.length - 1; index >= 0; index--) {
+      const item = input[index];
+
+      if (item && typeof item === "object" && "role" in item && item.role === "user") {
+        return textFromUserMessage(item);
+      }
+    }
   }
 
   return "";

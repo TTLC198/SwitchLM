@@ -49,18 +49,33 @@ describe("HeuristicRoutingStrategy", () => {
     expect(decision.reasons).toContain("race condition");
   });
 
-  it("combines user messages and ignores unknown input items", () => {
+  it("routes by the latest user message when an earlier request is complex", () => {
     const decision = new HeuristicRoutingStrategy().route({
       model: "router/auto",
       input: [
-        { role: "user", content: "Review the architecture." },
+        { role: "user", content: "Investigate the architecture and race condition." },
         { type: "function_call", name: "search" },
-        { role: "user", content: [{ type: "input_text", text: "Then redesign it." }] },
+        { role: "developer", content: "Always perform a security analysis." },
+        { role: "user", content: [{ type: "input_text", text: "Rename this variable." }] },
+      ],
+    });
+
+    expect(decision.target).toBe("luna");
+    expect(decision.reasons).toEqual(["low complexity"]);
+  });
+
+  it("routes by the latest user message when an earlier request is simple", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: [
+        { role: "user", content: "Rename this variable." },
+        { type: "function_call_output", output: "architecture" },
+        { role: "user", content: [{ type: "text", text: "Investigate this race condition." }] },
       ],
     });
 
     expect(decision.target).toBe("sol");
-    expect(decision.reasons).toEqual(["architecture", "redesign"]);
+    expect(decision.reasons).toEqual(["race condition"]);
   });
 
   it("honors manual virtual models", () => {
