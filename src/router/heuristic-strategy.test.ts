@@ -9,7 +9,30 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("luna");
-    expect(decision.score).toBe(0);
+    expect(decision.score).toBe(-4);
+    expect(decision.reasons).toEqual(["typo fix", "single rename"]);
+  });
+
+  it("lowers the score for formatting one file", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Format src/router.ts and update imports.",
+    });
+
+    expect(decision.target).toBe("luna");
+    expect(decision.score).toBe(-3);
+    expect(decision.reasons).toEqual(["formatting", "single file"]);
+  });
+
+  it("does not let simple signals cancel hard risk", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Fix the typo in src/shared.ts and investigate this race condition.",
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.score).toBe(5);
+    expect(decision.reasons).toEqual(["risk"]);
   });
 
   it("routes complex architecture and concurrency tasks to Sol", () => {
@@ -32,7 +55,7 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("luna");
-    expect(decision.reasons).toEqual(["low complexity"]);
+    expect(decision.reasons).toEqual(["single rename"]);
   });
 
   it("routes heavy user content to Sol", () => {
@@ -128,7 +151,7 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("luna");
-    expect(decision.reasons).toEqual(["low complexity"]);
+    expect(decision.reasons).toEqual(["single rename"]);
   });
 
   it("routes by the latest user message when an earlier request is simple", () => {

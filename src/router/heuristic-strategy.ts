@@ -50,6 +50,8 @@ export class HeuristicRoutingStrategy implements RoutingStrategy {
     const hasStackTrace = /\bstack trace\b/u.test(text) || /^\s*at\s+\S+.*:\d+:\d+\)?\s*$/mu.test(text);
     const hasLogs = /\blogs?\b/u.test(text) || /^\s*(?:\[[^\]]+\]\s*)?(?:error|warn(?:ing)?|info|debug)\b[:\s]/imu.test(text);
     const requirementCount = text.match(/^\s*(?:[-*]|\d+[.)])\s+/gmu)?.length ?? 0;
+    const hasHardRisk = /\b(?:race condition|deadlock|concurrency|security (?:audit|analysis))\b/u.test(text);
+    const hasCodeChange = /\b(?:change|modify|update|fix|implement|patch|refactor|rewrite|format)\b/u.test(text);
 
     if (hasMultipleFiles) {
       score += 2;
@@ -91,7 +93,7 @@ export class HeuristicRoutingStrategy implements RoutingStrategy {
       reasons.push("diagnostics with stack trace");
     }
 
-    if (/\bsecurity (?:audit|analysis)\b/u.test(text) && /\b(?:change|modify|update|fix|implement|patch|refactor|rewrite)\b/u.test(text)) {
+    if (/\bsecurity (?:audit|analysis)\b/u.test(text) && hasCodeChange) {
       score += 2;
       reasons.push("security code change");
     }
@@ -99,6 +101,28 @@ export class HeuristicRoutingStrategy implements RoutingStrategy {
     if (text.length > 12000) {
       score += 3;
       reasons.push("large context");
+    }
+
+    if (!hasHardRisk) {
+      if (/\b(?:fix|correct)\b[^.\n]*\btypos?\b/u.test(text)) {
+        score -= 2;
+        reasons.push("typo fix");
+      }
+
+      if (/\brename\b[^.\n]*\b(?:variable|function|method|class|symbol|identifier)\b/u.test(text)) {
+        score -= 2;
+        reasons.push("single rename");
+      }
+
+      if (/\b(?:format|formatting|prettier)\b/u.test(text)) {
+        score -= 2;
+        reasons.push("formatting");
+      }
+
+      if (filePathCount === 1 && hasCodeChange) {
+        score -= 1;
+        reasons.push("single file");
+      }
     }
 
     return {
