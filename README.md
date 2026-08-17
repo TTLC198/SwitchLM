@@ -184,9 +184,11 @@ curl http://127.0.0.1:8787/v1/responses ^
 
 Virtual models:
 
-- `router/auto` routes by deterministic heuristics over user messages only; developer/system context and tool items are ignored.
+- `router/auto` routes by deterministic heuristics over the latest user message; earlier user messages, developer/system context, and tool items are ignored.
 - `router/luna` always routes to Luna.
 - `router/sol` always routes to Sol.
+
+Because each request is evaluated independently, `router/auto` can switch from Luna to Sol or from Sol to Luna within the same session.
 
 Streaming requests are passed through as server-sent events.
 
