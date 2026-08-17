@@ -1,12 +1,17 @@
-# Offline routing trainer
+# Pairwise routing runner
 
-The trainer uses a small deterministic perceptron over binary routing features. It runs outside the production server and exports a versioned JSON model containing a bias, threshold, and feature weights.
+`pairwise-runner.ts` запускает оба логических provider-а на одном ограниченном request в offline-режиме.
 
-Training input is JSONL in the `RoutingTrainingExample` format from `src/router/training-example.ts`. Each line must contain one validated example; keep training records separate from `tools/routing/validation-set.json`.
+–езультат содержит только `status`, `latencyMs`, token usage и `artifactRef`; prompt и provider output не сохран€ютс€.
 
-```bash
-npx tsx tools/routing/train.ts training-data.jsonl routing-model.json
-npx tsx tools/routing/evaluate.ts
+ѕример:
+
+```ts
+const results = await runPairwiseBatch(inputs, { luna, sol }, {
+  concurrency: 2,
+  timeoutMs: 60_000,
+  dryRun: false,
+});
 ```
 
-The validation command reports accuracy, Sol rate, and misclassified scenarios. Compare that report with the learned-model report before considering any runtime integration. This commit does not add a provider, model loading, or production routing change.
+ќшибки одного provider-а не отмен€ют второй результат. `dryRun` не вызывает provider-ы, а `maxInputBytes` защищает от неограниченного batch input.
