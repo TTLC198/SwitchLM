@@ -19,8 +19,7 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("sol");
-    expect(decision.reasons).toContain("architecture");
-    expect(decision.reasons).toContain("race condition");
+    expect(decision.reasons).toEqual(["risk", "architecture", "scope"]);
   });
 
   it("ignores heavy signals in developer context", () => {
@@ -46,7 +45,27 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("sol");
-    expect(decision.reasons).toContain("race condition");
+    expect(decision.reasons).toEqual(["risk"]);
+  });
+
+  it("scores each signal group only once", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Investigate this race condition, deadlock, concurrency, and security analysis.",
+    });
+
+    expect(decision.score).toBe(5);
+    expect(decision.reasons).toEqual(["risk"]);
+  });
+
+  it("matches signals only on word boundaries", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Document the microarchitecture and debuggingTools modules.",
+    });
+
+    expect(decision.score).toBe(0);
+    expect(decision.reasons).toEqual(["low complexity"]);
   });
 
   it("routes by the latest user message when an earlier request is complex", () => {
@@ -75,7 +94,7 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("sol");
-    expect(decision.reasons).toEqual(["race condition"]);
+    expect(decision.reasons).toEqual(["risk"]);
   });
 
   it("honors manual virtual models", () => {

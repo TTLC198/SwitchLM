@@ -1,20 +1,22 @@
 import type { RoutingDecision, RoutingRequest, RoutingStrategy } from "./routing-strategy.js";
 
-const heavySignals = [
-  ["architecture", 4],
-  ["redesign", 4],
-  ["large refactor", 4],
-  ["large refactoring", 4],
-  ["race condition", 5],
-  ["deadlock", 5],
-  ["concurrency", 4],
-  ["security audit", 5],
-  ["security analysis", 5],
-  ["multiple modules", 3],
-  ["cross-module", 3],
-  ["repository-wide", 3],
-  ["entire repo", 3],
-  ["debugging", 2],
+const heavySignalGroups = [
+  {
+    reason: "risk",
+    weight: 5,
+    signals: [/\brace condition\b/u, /\bdeadlock\b/u, /\bconcurrency\b/u, /\bsecurity (?:audit|analysis)\b/u],
+  },
+  {
+    reason: "architecture",
+    weight: 4,
+    signals: [/\barchitecture\b/u, /\bredesign\b/u, /\blarge refactor(?:ing)?\b/u],
+  },
+  {
+    reason: "scope",
+    weight: 3,
+    signals: [/\bmultiple modules\b/u, /\bcross-module\b/u, /\brepository-wide\b/u, /\bentire repo\b/u],
+  },
+  { reason: "diagnostics", weight: 2, signals: [/\bdebugging\b/u] },
 ] as const;
 
 export class HeuristicRoutingStrategy implements RoutingStrategy {
@@ -33,10 +35,10 @@ export class HeuristicRoutingStrategy implements RoutingStrategy {
     const reasons: string[] = [];
     let score = 0;
 
-    for (const [signal, weight] of heavySignals) {
-      if (text.includes(signal)) {
-        score += weight;
-        reasons.push(signal);
+    for (const group of heavySignalGroups) {
+      if (group.signals.some((signal) => signal.test(text))) {
+        score += group.weight;
+        reasons.push(group.reason);
       }
     }
 
