@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "scenarios": [
+    {
+      "id": "simple-rename",
+      "input": "Rename this variable.",
+      "expectedTarget": "luna"
+    },
+    {
+      "id": "single-file-formatting",
+      "input": "Format src/router.ts and update imports.",
+      "expectedTarget": "luna"
+    },
+    {
+      "id": "single-module-architecture",
+      "input": "Review the architecture of one module.",
+      "expectedTarget": "luna"
+    },
+    {
+      "id": "boundary-word-match",
+      "input": "Document the microarchitecture and debuggingTools modules.",
+      "expectedTarget": "luna"
+    },
+    {
+      "id": "race-condition",
+      "input": "Investigate this race condition.",
+      "expectedTarget": "sol"
+    },
+    {
+      "id": "multi-module-architecture",
+      "input": "Review the architecture of the auth module and billing module.",
+      "expectedTarget": "sol"
+    },
+    {
+      "id": "diagnostics-stack-trace",
+      "input": "Debugging this failure.\nError: failed\n    at run (src/app.ts:10:2)",
+      "expectedTarget": "sol"
+    },
+    {
+      "id": "multi-file-requirements",
+      "input": "Update src/api.ts and src/server.ts.\n- Preserve the response schema.\n- Add error handling.\n```ts\nthrow new Error();\n```\nERROR: request failed",
+      "expectedTarget": "sol"
+    },
+    {
+      "id": "security-code-change",
+      "input": "Perform a security analysis and update src/auth.ts.",
+      "expectedTarget": "sol"
+    },
+    {
+      "id": "repository-wide-refactor",
+      "input": "Perform a repository-wide architecture redesign.",
+      "expectedTarget": "sol"
+    }
+  ]
+}
