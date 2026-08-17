@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HeuristicRoutingStrategy } from "../../src/router/heuristic-strategy.js";
-import type { RoutingStrategy } from "../../src/router/routing-strategy.js";
+import type { RoutingDecision, RoutingStrategy } from "../../src/router/routing-strategy.js";
 import { compareRouting } from "./compare-routing.js";
 import { assertQualityGate, evaluateQualityGate } from "./quality-gate.js";
 
@@ -10,8 +10,8 @@ class FixedStrategy implements RoutingStrategy {
 }
 
 class SplitStrategy implements RoutingStrategy {
-  route(request: { input: unknown }) {
-    return { target: request.input === "b" ? "sol" : "luna", score: 0, reasons: ["test"] } as const;
+  route(request: { input: unknown }): RoutingDecision {
+    return { target: request.input === "b" ? "sol" : "luna", score: 0, reasons: ["test"] };
   }
 }
 
@@ -57,3 +57,4 @@ describe("quality gate", () => {
     expect(() => assertQualityGate(report)).toThrow("Quality gate failed");
   });
 });
+

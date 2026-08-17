@@ -10,7 +10,7 @@ function record(requestId: string, preferredModel: "luna" | "sol", sessionId?: s
     schemaVersion: 2,
     collectedAt: "2026-08-17T00:00:00.000Z",
     requestId,
-    features: { charCount: 1, lineCount: 1, wordCount: 1, codeBlockCount: 0, listItemCount: 0, hasErrorSignal: false, hasPathSignal: false },
+    features: { charCount: 1, lineCount: 1, wordCount: 1, codeBlockCount: 0, listItemCount: 0, hasErrorSignal: false, hasPathSignal: false, routingFeatures: {} },
     results: { luna: { score: 0, passed: false }, sol: { score: 1, passed: true } },
     preferredModel,
     evaluation: { method: "human" },
@@ -51,3 +51,4 @@ describe("dataset", () => {
     expect(saved.manifest).toMatchObject({ schemaVersion: 1, recordCount: 1, source: "test-fixture", policyVersion: "policy-1" });
   });
 });
+

@@ -13,3 +13,11 @@ yarn-error.log*
 
 .vscode/*
 /.idea/
+
+# Local routing training artifacts
+*.jsonl
+/dataset*.json
+/routing-model*.json
+/pairwise-results*
+/training-data*
+!/tools/routing/validation-set.json

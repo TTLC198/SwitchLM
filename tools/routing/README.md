@@ -33,3 +33,46 @@ await writeDatasetAtomic("dataset.json", dataset);
 ```
 
 Export выполняется через временный файл и `rename`, поэтому незавершённая запись не заменяет готовый dataset.
+
+## End-to-end training commands
+
+Подготовка normalized records из quality evidence:
+
+```powershell
+npx tsx tools/routing/evaluate-pairwise.ts evidence.jsonl normalized-records.jsonl
+```
+
+Сбор pairwise результатов из request JSONL:
+
+```powershell
+npx tsx tools/routing/collect-pairwise.ts --input requests.jsonl --output pairwise-results.jsonl --concurrency 2
+```
+
+Для проверки CLI без вызова provider используйте `--dry-run`.
+
+Построение versioned dataset:
+
+```powershell
+npx tsx tools/routing/build-dataset.ts `
+  --input normalized-records.jsonl `
+  --output dataset.json `
+  --source pairwise-run-2026-08-17 `
+  --policy-version policy-1
+```
+
+Обучение versioned model artifact:
+
+```powershell
+npx tsx tools/routing/train-artifact.ts `
+  --dataset dataset.json `
+  --output routing-model.json `
+  --model-version routing-2026-08-17-001
+```
+
+Quality gate принимает агрегированный report от `compareRouting` и завершает процесс с ненулевым кодом при нарушении порогов:
+
+```powershell
+npx tsx tools/routing/quality-gate-cli.ts comparison-report.json gate-report.json
+```
+
+Не коммитьте реальные JSONL/dataset/model artifacts или credentials.

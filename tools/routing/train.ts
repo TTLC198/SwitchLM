@@ -29,6 +29,14 @@ const featurePatterns = [
 export type RoutingFeature = (typeof featurePatterns)[number][0];
 export type RoutingFeatures = Partial<Record<RoutingFeature, number>>;
 
+export type { RoutingTrainingExample } from "../../src/router/training-example.js";
+
+export type TrainingInput = {
+  preferredModel: "luna" | "sol";
+  request?: string;
+  routingFeatures?: RoutingFeatures;
+};
+
 export type ModelPrediction = {
   target: RoutingTarget;
   score: number;
@@ -63,7 +71,7 @@ export function extractRoutingFeatures(input: string): RoutingFeatures {
 }
 
 export function trainRoutingModel(
-  examples: readonly RoutingTrainingExample[],
+  examples: readonly (RoutingTrainingExample | TrainingInput)[],
   options: { epochs?: number; learningRate?: number } = {},
 ): RoutingModel {
   const epochs = options.epochs ?? 10;
@@ -73,8 +81,10 @@ export function trainRoutingModel(
 
   for (let epoch = 0; epoch < epochs; epoch++) {
     for (const example of examples) {
-      const parsed = deserializeRoutingTrainingExample(JSON.stringify(example));
-      const features = extractRoutingFeatures(parsed.request);
+      const parsed = example;
+      const features = "routingFeatures" in parsed && parsed.routingFeatures
+        ? parsed.routingFeatures
+        : extractRoutingFeatures("request" in parsed ? parsed.request ?? "" : "");
       const label = parsed.preferredModel === "sol" ? 1 : -1;
       const score = predictScore({ bias, weights }, features);
 
@@ -151,3 +161,5 @@ if (process.argv[1]?.replaceAll("\\", "/").endsWith("/tools/routing/train.ts")) 
     process.stdout.write(`${serializeRoutingModel(model)}\n`);
   });
 }
+
+

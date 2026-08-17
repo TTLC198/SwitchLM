@@ -13,6 +13,7 @@ export type TrainingRecord = Omit<RoutingTrainingExample, "request" | "schemaVer
     listItemCount: number;
     hasErrorSignal: boolean;
     hasPathSignal: boolean;
+    routingFeatures: Record<string, number>;
   };
   requestPreview?: string;
 };
@@ -70,6 +71,22 @@ export function redactTrainingText(text: string): string {
     .trim();
 }
 
+function extractRoutingFeatures(request: string): Record<string, number> {
+  const text = request.toLowerCase();
+  const signals: Record<string, string[]> = {
+    risk: ["race condition", "deadlock", "concurrency", "security audit", "security analysis"],
+    architecture: ["architecture", "redesign", "large refactor"],
+    scope: ["multiple modules", "cross-module", "repository-wide", "entire repo"],
+    diagnostics: ["debugging"],
+    codeBlock: ["```"],
+    stackTrace: ["stack trace"],
+    logs: ["logs", "error", "warning"],
+    typoFix: ["typo"],
+    formatting: ["format", "prettier"],
+  };
+  return Object.fromEntries(Object.entries(signals).filter(([, values]) => values.some((value) => text.includes(value))).map(([name]) => [name, 1]));
+}
+
 function summarizeFeatures(request: string): TrainingRecord["features"] {
   return {
     charCount: request.length,
@@ -79,8 +96,12 @@ function summarizeFeatures(request: string): TrainingRecord["features"] {
     listItemCount: request.match(/(?:^|\n)\s*(?:[-*]|\d+[.)])\s+/gmu)?.length ?? 0,
     hasErrorSignal: /\b(?:error|exception|failed|failure|stack trace)\b/iu.test(request),
     hasPathSignal: /(?:[A-Z]:\\|\/(?:Users|home)\/|\b\w+[\\/]\w+)/u.test(request),
+    routingFeatures: extractRoutingFeatures(request),
   };
 }
+
+
+
 
 
 
