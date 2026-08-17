@@ -42,6 +42,60 @@ export class HeuristicRoutingStrategy implements RoutingStrategy {
       }
     }
 
+    const filePathCount = text.match(/\b(?:[\w.-]+[\\/])+\w[\w.-]*\b/gu)?.length ?? 0;
+    const moduleCount = text.match(/\b[\w.-]+\s+modules?\b/gu)?.length ?? 0;
+    const hasMultipleFiles = filePathCount >= 2;
+    const hasMultipleModules = moduleCount >= 2 || /\bmultiple modules\b/u.test(text);
+    const hasCodeBlock = text.includes("```");
+    const hasStackTrace = /\bstack trace\b/u.test(text) || /^\s*at\s+\S+.*:\d+:\d+\)?\s*$/mu.test(text);
+    const hasLogs = /\blogs?\b/u.test(text) || /^\s*(?:\[[^\]]+\]\s*)?(?:error|warn(?:ing)?|info|debug)\b[:\s]/imu.test(text);
+    const requirementCount = text.match(/^\s*(?:[-*]|\d+[.)])\s+/gmu)?.length ?? 0;
+
+    if (hasMultipleFiles) {
+      score += 2;
+      reasons.push("multiple files");
+    }
+
+    if (hasMultipleModules) {
+      score += 2;
+      reasons.push("multiple modules");
+    }
+
+    if (hasCodeBlock) {
+      score += 1;
+      reasons.push("code block");
+    }
+
+    if (hasStackTrace) {
+      score += 2;
+      reasons.push("stack trace");
+    }
+
+    if (hasLogs) {
+      score += 1;
+      reasons.push("logs");
+    }
+
+    if (requirementCount >= 2) {
+      score += 2;
+      reasons.push("multiple requirements");
+    }
+
+    if (reasons.includes("architecture") && hasMultipleModules) {
+      score += 2;
+      reasons.push("architecture across modules");
+    }
+
+    if (reasons.includes("diagnostics") && hasStackTrace) {
+      score += 2;
+      reasons.push("diagnostics with stack trace");
+    }
+
+    if (/\bsecurity (?:audit|analysis)\b/u.test(text) && /\b(?:change|modify|update|fix|implement|patch|refactor|rewrite)\b/u.test(text)) {
+      score += 2;
+      reasons.push("security code change");
+    }
+
     if (text.length > 12000) {
       score += 3;
       reasons.push("large context");

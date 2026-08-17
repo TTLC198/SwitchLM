@@ -19,7 +19,7 @@ describe("HeuristicRoutingStrategy", () => {
     });
 
     expect(decision.target).toBe("sol");
-    expect(decision.reasons).toEqual(["risk", "architecture", "scope"]);
+    expect(decision.reasons).toEqual(["risk", "architecture", "scope", "multiple modules", "architecture across modules"]);
   });
 
   it("ignores heavy signals in developer context", () => {
@@ -66,6 +66,54 @@ describe("HeuristicRoutingStrategy", () => {
 
     expect(decision.score).toBe(0);
     expect(decision.reasons).toEqual(["low complexity"]);
+  });
+
+  it("combines structural signals from files, code, logs, and requirements", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: [
+        "Update src/api.ts and src/server.ts.",
+        "- Preserve the response schema.",
+        "- Add error handling.",
+        "```ts",
+        "throw new Error();",
+        "```",
+        "ERROR: request failed",
+      ].join("\n"),
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toEqual(["multiple files", "code block", "logs", "multiple requirements"]);
+  });
+
+  it("adds a bonus for architecture across multiple modules", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Review the architecture of the auth module and billing module.",
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toEqual(["architecture", "multiple modules", "architecture across modules"]);
+  });
+
+  it("adds a bonus for diagnostics with a stack trace", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Debugging this failure.\nError: failed\n    at run (src/app.ts:10:2)",
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toEqual(["diagnostics", "stack trace", "logs", "diagnostics with stack trace"]);
+  });
+
+  it("adds a bonus for security analysis with code changes", () => {
+    const decision = new HeuristicRoutingStrategy().route({
+      model: "router/auto",
+      input: "Perform a security analysis and update src/auth.ts.",
+    });
+
+    expect(decision.target).toBe("sol");
+    expect(decision.reasons).toEqual(["risk", "security code change"]);
   });
 
   it("routes by the latest user message when an earlier request is complex", () => {
