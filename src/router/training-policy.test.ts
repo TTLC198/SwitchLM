@@ -6,6 +6,8 @@ describe("training policy", () => {
     const policy = trainingPolicySchema.parse({});
 
     expect(policy).toEqual(defaultTrainingPolicy);
+    expect(policy.capturePrompts).toBe(false);
+    expect(policy.maxRequestBytes).toBe(256 * 1024);
     expect(validateTrainingPolicy(policy, {}, "C:/workspace")).toEqual(policy);
   });
 

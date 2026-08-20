@@ -23,6 +23,7 @@ export type ResponsesProxyDeps = {
   routingStrategy: RoutingStrategy;
   tokenStats: TokenStats;
   trainingObserver?: (observation: RoutingObservationInput) => Promise<boolean> | boolean;
+  trainingRequestCollector?: (request: ProviderRequest) => Promise<boolean> | boolean;
 };
 
 export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProxyDeps): void {
@@ -52,7 +53,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       reply.header("cache-control", upstream.headers.get("cache-control") ?? "no-cache");
 
       if (!upstream.body) {
-        scheduleObservation(deps, body.input, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt);
+        scheduleTrainingData(deps, body, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt);
         return reply.send();
       }
 
@@ -62,7 +63,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
           deps.tokenStats.recordUsage(decision.target, usage);
           request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
         },
-        () => scheduleObservation(deps, body.input, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt),
+        () => scheduleTrainingData(deps, body, body.model, decision, upstream.status >= 200 && upstream.status < 300, startedAt),
       );
 
       return reply.send(stream);
@@ -72,7 +73,7 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
     try {
       response = await deps.providers[decision.target].createResponse(body as ProviderRequest);
     } catch (error) {
-      scheduleObservation(deps, body.input, body.model, decision, false, startedAt);
+      scheduleTrainingData(deps, body, body.model, decision, false, startedAt);
       throw error;
     }
     const usage = parseUsage(response);
@@ -82,29 +83,32 @@ export function registerResponsesProxy(app: FastifyInstance, deps: ResponsesProx
       request.log.info({ model: decision.target, usage }, "SwitchLM token usage");
     }
 
-    scheduleObservation(deps, body.input, body.model, decision, true, startedAt);
+    scheduleTrainingData(deps, body, body.model, decision, true, startedAt);
     return response;
   });
 }
 
-function scheduleObservation(
+function scheduleTrainingData(
   deps: ResponsesProxyDeps,
-  input: unknown,
+  request: ProviderRequest,
   requestedModel: string,
   decision: RoutingObservationInput["decision"],
   success: boolean,
   startedAt: number,
 ): void {
-  if (!deps.trainingObserver || requestedModel !== "router/auto") return;
+  if (requestedModel !== "router/auto") return;
   const observation: RoutingObservationInput = {
-    input,
+    input: request.input,
     requestedModel,
     decision,
     success,
     latencyMs: Math.max(0, Date.now() - startedAt),
   };
   queueMicrotask(() => {
-    void Promise.resolve(deps.trainingObserver?.(observation)).catch(() => undefined);
+    void Promise.all([
+      deps.trainingObserver ? deps.trainingObserver(observation) : undefined,
+      deps.trainingRequestCollector ? deps.trainingRequestCollector(request) : undefined,
+    ]).catch(() => undefined);
   });
 }
 

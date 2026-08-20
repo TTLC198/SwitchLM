@@ -5,6 +5,9 @@ import { z } from "zod";
 export const defaultTrainingPolicy = {
   enabled: false,
   observationFilePath: defaultTrainingObservationPath(),
+  capturePrompts: false,
+  requestFilePath: defaultTrainingRequestPath(),
+  maxRequestBytes: 256 * 1024,
   maxRecordBytes: 64 * 1024,
   minIntervalMs: 1_000,
   retentionDays: 30,
@@ -16,6 +19,9 @@ export const trainingPolicySchema = z.object({
   enabled: z.boolean().default(defaultTrainingPolicy.enabled),
   filePath: z.string().min(1).optional(),
   observationFilePath: z.string().min(1).default(defaultTrainingPolicy.observationFilePath),
+  capturePrompts: z.boolean().default(defaultTrainingPolicy.capturePrompts),
+  requestFilePath: z.string().min(1).default(defaultTrainingPolicy.requestFilePath),
+  maxRequestBytes: z.number().int().positive().max(16 * 1024 * 1024).default(defaultTrainingPolicy.maxRequestBytes),
   maxRecordBytes: z.number().int().positive().max(1024 * 1024).default(defaultTrainingPolicy.maxRecordBytes),
   minIntervalMs: z.number().int().min(0).max(60 * 60 * 1000).default(defaultTrainingPolicy.minIntervalMs),
   retentionDays: z.number().int().min(1).max(3650).default(defaultTrainingPolicy.retentionDays),
@@ -34,7 +40,7 @@ export function validateTrainingPolicy(
     return policy;
   }
 
-  for (const configuredPath of [policy.filePath, policy.observationFilePath]) {
+  for (const configuredPath of [policy.filePath, policy.observationFilePath, policy.requestFilePath]) {
     if (!configuredPath) continue;
     const filePath = resolve(configuredPath);
     const workspacePath = resolve(workspace);
@@ -60,4 +66,8 @@ export function defaultTrainingDataPath(): string {
 
 export function defaultTrainingObservationPath(): string {
   return resolve(homedir(), ".switchlm", "routing-observations.jsonl");
+}
+
+export function defaultTrainingRequestPath(): string {
+  return resolve(homedir(), ".switchlm", "routing-requests.jsonl");
 }

@@ -11,6 +11,7 @@ import { HeuristicRoutingStrategy } from "./router/heuristic-strategy.js";
 import { createLearnedRoutingStrategy } from "./router/learned-strategy.js";
 import { ShadowRoutingStrategy } from "./router/shadow-routing.js";
 import { TrainingObservationCollector } from "./router/training-observation.js";
+import { TrainingRequestCollector } from "./router/training-request.js";
 import { TokenStats } from "./telemetry/token-stats.js";
 import { HttpCodexResponsesTransport } from "./transport/codex-responses-transport.js";
 
@@ -36,9 +37,24 @@ export function buildApp(config: AppConfig) {
     routingStrategy: createRoutingStrategy(config, tokenStats),
     tokenStats,
     trainingObserver: createTrainingObserver(config),
+    trainingRequestCollector: createTrainingRequestCollector(config),
   });
 
   return app;
+}
+
+function createTrainingRequestCollector(config: AppConfig) {
+  const policy = config.routing.trainingData;
+  if (!policy.enabled || !policy.capturePrompts) return undefined;
+
+  const collector = new TrainingRequestCollector({
+    enabled: true,
+    filePath: policy.requestFilePath,
+    maxRequestBytes: policy.maxRequestBytes,
+    retentionDays: policy.retentionDays,
+    hmacKey: process.env[policy.hmacKeyEnv],
+  });
+  return (request: Parameters<TrainingRequestCollector["record"]>[0]) => collector.record(request);
 }
 
 function createTrainingObserver(config: AppConfig) {

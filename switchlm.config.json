@@ -3,7 +3,18 @@
   "port": 8787,
   "bodyLimit": 16777216,
   "routing": {
-    "solThreshold": 5
+    "mode": "heuristic",
+    "solThreshold": 5,
+    "trainingData": {
+      "enabled": true,
+      "capturePrompts": false,
+      "requestFilePath": "C:/Users/me/.switchlm/routing-requests.jsonl",
+      "maxRequestBytes": 262144,
+      "minIntervalMs": 1000,
+      "retentionDays": 30,
+      "allowRequestPreview": false,
+      "hmacKeyEnv": "SWITCHLM_TRAINING_HMAC_KEY"
+    }
   },
   "providers": {
     "luna": {

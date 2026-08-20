@@ -28,13 +28,19 @@ Runtime observations не являются labels. Они фиксируют т�
   "routing": {
     "trainingData": {
       "enabled": true,
+      "capturePrompts": true,
       "observationFilePath": "C:/Users/me/.switchlm/routing-observations.jsonl",
+      "requestFilePath": "C:/Users/me/.switchlm/routing-requests.jsonl",
       "filePath": "C:/Users/me/.switchlm/routing-training.jsonl",
       "hmacKeyEnv": "SWITCHLM_TRAINING_HMAC_KEY"
     }
   }
 }
 ```
+
+`capturePrompts` дополнительно включает запись полных JSON-запросов в `requestFilePath`.
+Она работает только вместе с `enabled: true`, по умолчанию выключена и ограничена `maxRequestBytes`.
+Файл содержит чувствительные данные и должен оставаться вне репозитория.
 
 Перед запуском задайте HMAC-ключ в environment:
 
@@ -144,3 +150,22 @@ npx tsx tools/routing/quality-gate-cli.ts comparison-report.json gate-report.jso
 - Pairwise CLI подключает только `openai-compatible` providers.
 - Автоматические quality evaluation, model promotion и rollback требуют следующих этапов.
 - JSONL, dataset и model artifacts не должны коммититься в репозиторий.
+
+## Full prompt capture
+
+To automatically collect requests, enable both flags:
+
+```json
+{
+  "routing": {
+    "trainingData": {
+      "enabled": true,
+      "capturePrompts": true,
+      "requestFilePath": "C:/Users/me/.switchlm/routing-requests.jsonl",
+      "maxRequestBytes": 262144
+    }
+  }
+}
+```
+
+Full JSON requests are written only for `router/auto` to `requestFilePath` and are compatible with `tools/routing/collect-pairwise.ts`. `capturePrompts` is disabled by default; the file may contain sensitive data and must stay outside the repository.
